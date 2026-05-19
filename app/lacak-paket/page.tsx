@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Poppins } from 'next/font/google';
 import Image from 'next/image';
 import { 
@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { TruckIcon } from '@heroicons/react/24/solid';
 import Sidebar from '@/components/Sidebar';
+import { fetchMyPackages } from '@/app/lib/actions';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -27,10 +28,33 @@ export default function LacakPaket() {
   const [resiInput, setResiInput] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [myPackages, setMyPackages] = useState<any[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<any>(null);
 
-  const handleLacak = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (resiInput.trim().toUpperCase() === 'CKL2026040001') {
+  useEffect(() => {
+    async function loadPackages() {
+      try {
+        const pkgs = await fetchMyPackages();
+        if (pkgs && pkgs.length > 0) {
+          setMyPackages(pkgs);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil paket", error);
+      }
+    }
+    loadPackages();
+  }, []);
+
+  const handleLacak = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const pkg = myPackages.find(p => p.resi.toUpperCase() === resiInput.trim().toUpperCase());
+    
+    if (pkg) {
+      setSelectedPackage(pkg);
+      setShowResult(true);
+      setNotFound(false);
+    } else if (resiInput.trim().toUpperCase() === 'CKL2026040001') {
+      setSelectedPackage(null);
       setShowResult(true);
       setNotFound(false);
     } else {
@@ -104,6 +128,43 @@ export default function LacakPaket() {
             </button>
           )}
         </form>
+
+        {/* Daftar Paket Saya */}
+        {!showResult && myPackages.length > 0 && (
+          <div className="max-w-3xl mb-12 animate-in fade-in slide-in-from-bottom-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <CubeIcon className="w-5 h-5 text-[#1db372]" />
+              Paket Anda Saat Ini
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {myPackages.map((pkg) => (
+                <div 
+                  key={pkg.id}
+                  onClick={() => {
+                    setResiInput(pkg.resi);
+                    setTimeout(() => {
+                       const p = myPackages.find(x => x.resi === pkg.resi);
+                       if (p) {
+                         setSelectedPackage(p);
+                         setShowResult(true);
+                         setNotFound(false);
+                       }
+                    }, 50);
+                  }}
+                  className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-[#1db372] cursor-pointer transition-all flex justify-between items-center group"
+                >
+                  <div>
+                    <p className="font-extrabold text-[#0c5132] text-sm md:text-base mb-1">{pkg.resi}</p>
+                    <p className="text-xs text-gray-500 font-medium">Ke: {pkg.receiver_name} ({pkg.destination})</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-[#e2f6ea] group-hover:text-[#1db372] transition-colors">
+                    <span className="font-bold text-lg">→</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Not Found View */}
         {notFound && !showResult && (
@@ -233,8 +294,12 @@ export default function LacakPaket() {
                       <p className="text-[11px] font-bold text-gray-400 tracking-wider">PENGIRIM</p>
                     </div>
                     <div className="pl-6 border-l-2 border-gray-200 ml-2 pb-6">
-                      <p className="font-bold text-gray-900 text-[14px]">PT. Maju Mundur Sejahtera</p>
-                      <p className="text-[13px] text-gray-500 mt-0.5">Jakarta Pusat</p>
+                      <p className="font-bold text-gray-900 text-[14px]">
+                        {selectedPackage ? selectedPackage.sender_name : 'PT. Maju Mundur Sejahtera'}
+                      </p>
+                      <p className="text-[13px] text-gray-500 mt-0.5">
+                        {selectedPackage ? selectedPackage.origin : 'Jakarta Pusat'}
+                      </p>
                     </div>
                   </div>
 
@@ -245,9 +310,11 @@ export default function LacakPaket() {
                       <p className="text-[11px] font-bold text-gray-400 tracking-wider">PENERIMA</p>
                     </div>
                     <div className="pl-6 ml-2">
-                      <p className="font-bold text-gray-900 text-[14px]">Bapak Ridwan Kamil</p>
+                      <p className="font-bold text-gray-900 text-[14px]">
+                        {selectedPackage ? selectedPackage.receiver_name : 'Bapak Ridwan Kamil'}
+                      </p>
                       <p className="text-[13px] text-gray-500 mt-0.5 leading-relaxed">
-                        Jl. Dago No. 45, Bandung, Jawa Barat
+                        {selectedPackage ? selectedPackage.destination : 'Jl. Dago No. 45, Bandung, Jawa Barat'}
                       </p>
                     </div>
                   </div>

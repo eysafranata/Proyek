@@ -236,14 +236,26 @@ export async function createPackage(formData: FormData) {
     return { error: 'Mohon lengkapi semua data!' };
   }
 
+  // Validate sender_name against users table
+  const userRows = await sql`
+    SELECT id FROM users 
+    WHERE LOWER(name) = LOWER(${sender_name}) AND role = 'Pelanggan'
+  `;
+
+  if (userRows.length === 0) {
+    return { error: 'Nama pelanggan tidak terdaftar di sistem. Mohon pastikan pelanggan sudah memiliki akun.' };
+  }
+  
+  const user_id = userRows[0].id;
+
   // Generate Resi otomatis CKL + 10 digit angka
   const resi = `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
   const total_price = weight * 10000;
 
   try {
     const result = await sql`
-      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price)
-      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price})
+      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price, user_id)
+      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price}, ${user_id})
       RETURNING *
     `;
     
@@ -252,5 +264,26 @@ export async function createPackage(formData: FormData) {
   } catch (error) {
     console.error('Database Error:', error);
     return { error: 'Gagal simpan paket ke database.' };
+  }
+}
+
+export async function fetchMyPackages() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  try {
+    const packages = await sql`
+      SELECT * FROM packages 
+      WHERE user_id = ${user.id} 
+      ORDER BY created_at DESC
+    `;
+    
+    return packages.map(p => ({
+      ...p,
+      created_at: p.created_at ? p.created_at.toISOString() : null
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
   }
 }
