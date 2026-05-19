@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Poppins } from 'next/font/google';
 import Image from 'next/image';
 import { 
@@ -17,6 +18,7 @@ import {
 import { TruckIcon } from '@heroicons/react/24/solid';
 import Sidebar from '@/components/Sidebar';
 import { fetchMyPackages } from '@/app/lib/actions';
+import Pagination from '@/app/ui/pagination';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -24,12 +26,26 @@ const poppins = Poppins({
 });
 
 export default function LacakPaket() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LacakPaketContent />
+    </Suspense>
+  );
+}
+
+function LacakPaketContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [resiInput, setResiInput] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [myPackages, setMyPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
+
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const ITEMS_PER_PAGE = 4;
+  const totalPages = Math.ceil(myPackages.length / ITEMS_PER_PAGE);
+  const paginatedPackages = myPackages.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   useEffect(() => {
     async function loadPackages() {
@@ -137,7 +153,7 @@ export default function LacakPaket() {
               Paket Anda Saat Ini
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {myPackages.map((pkg) => (
+              {paginatedPackages.map((pkg) => (
                 <div 
                   key={pkg.id}
                   onClick={() => {
@@ -163,6 +179,11 @@ export default function LacakPaket() {
                 </div>
               ))}
             </div>
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <Pagination totalPages={totalPages} />
+              </div>
+            )}
           </div>
         )}
 
