@@ -287,3 +287,316 @@ export async function fetchMyPackages() {
     return [];
   }
 }
+
+export async function fetchAllPackages(query: string = '', statusFilter: string = 'Semua') {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
+
+  try {
+    const searchVal = `%${query}%`;
+    let packages;
+
+    if (statusFilter === 'Semua') {
+      packages = await sql`
+        SELECT * FROM packages
+        WHERE
+          resi ILIKE ${searchVal} OR
+          sender_name ILIKE ${searchVal} OR
+          receiver_name ILIKE ${searchVal} OR
+          origin ILIKE ${searchVal} OR
+          destination ILIKE ${searchVal}
+        ORDER BY created_at DESC
+      `;
+    } else {
+      packages = await sql`
+        SELECT * FROM packages
+        WHERE
+          status = ${statusFilter} AND (
+            resi ILIKE ${searchVal} OR
+            sender_name ILIKE ${searchVal} OR
+            receiver_name ILIKE ${searchVal} OR
+            origin ILIKE ${searchVal} OR
+            destination ILIKE ${searchVal}
+          )
+        ORDER BY created_at DESC
+      `;
+    }
+
+    return packages.map((p: any) => ({
+      ...p,
+      created_at: p.created_at ? p.created_at.toISOString() : null,
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
+export async function updatePackageStatus(id: string, status: string) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return { error: 'Unauthorized' };
+
+  try {
+    await sql`UPDATE packages SET status = ${status} WHERE id = ${id}`;
+    revalidatePath('/dashboard-admin/packages');
+    revalidatePath('/dashboard-admin/laporan-kinerja');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal mengubah status paket.' };
+  }
+}
+
+export async function submitComplaint(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: 'Anda harus login terlebih dahulu!' };
+  }
+
+  const type = formData.get('type') as string;
+  const title = formData.get('title') as string;
+  const message = formData.get('message') as string;
+
+  if (!type || !title || !message) {
+    return { error: 'Mohon lengkapi semua field!' };
+  }
+
+  try {
+    const result = await sql`
+      INSERT INTO complaints (user_id, name, email, type, title, message, status)
+      VALUES (${user.id}, ${user.name}, ${user.email}, ${type}, ${title}, ${message}, 'Pending')
+      RETURNING *
+    `;
+    
+    revalidatePath('/dashboard/feedback');
+    revalidatePath('/dashboard-admin/complaints');
+    return { success: true, complaint: {
+      ...result[0],
+      created_at: result[0].created_at ? result[0].created_at.toISOString() : null
+    } };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal mengirim keluhan/feedback.' };
+  }
+}
+
+export async function fetchMyComplaints() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  try {
+    const complaints = await sql`
+      SELECT * FROM complaints 
+      WHERE user_id = ${user.id} 
+      ORDER BY created_at DESC
+    `;
+    
+    return complaints.map((c: any) => ({
+      ...c,
+      created_at: c.created_at ? c.created_at.toISOString() : null
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
+export async function fetchAllComplaints(query: string = '', typeFilter: string = 'Semua', statusFilter: string = 'Semua') {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    let complaints;
+    const searchVal = `%${query}%`;
+    
+    if (typeFilter === 'Semua' && statusFilter === 'Semua') {
+      complaints = await sql`
+        SELECT * FROM complaints
+        WHERE 
+          name ILIKE ${searchVal} OR
+          email ILIKE ${searchVal} OR
+          title ILIKE ${searchVal} OR
+          message ILIKE ${searchVal}
+        ORDER BY created_at DESC
+      `;
+    } else if (typeFilter !== 'Semua' && statusFilter === 'Semua') {
+      complaints = await sql`
+        SELECT * FROM complaints
+        WHERE 
+          type = ${typeFilter} AND (
+            name ILIKE ${searchVal} OR
+            email ILIKE ${searchVal} OR
+            title ILIKE ${searchVal} OR
+            message ILIKE ${searchVal}
+          )
+        ORDER BY created_at DESC
+      `;
+    } else if (typeFilter === 'Semua' && statusFilter !== 'Semua') {
+      complaints = await sql`
+        SELECT * FROM complaints
+        WHERE 
+          status = ${statusFilter} AND (
+            name ILIKE ${searchVal} OR
+            email ILIKE ${searchVal} OR
+            title ILIKE ${searchVal} OR
+            message ILIKE ${searchVal}
+          )
+        ORDER BY created_at DESC
+      `;
+    } else {
+      complaints = await sql`
+        SELECT * FROM complaints
+        WHERE 
+          type = ${typeFilter} AND
+          status = ${statusFilter} AND (
+            name ILIKE ${searchVal} OR
+            email ILIKE ${searchVal} OR
+            title ILIKE ${searchVal} OR
+            message ILIKE ${searchVal}
+          )
+        ORDER BY created_at DESC
+      `;
+    }
+
+    return complaints.map((c: any) => ({
+      ...c,
+      created_at: c.created_at ? c.created_at.toISOString() : null
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
+export async function updateComplaintStatus(id: string, status: string) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') {
+    return { error: 'Unauthorized' };
+  }
+
+  try {
+    await sql`
+      UPDATE complaints
+      SET status = ${status}
+      WHERE id = ${id}
+    `;
+    
+    revalidatePath('/dashboard/feedback');
+    revalidatePath('/dashboard-admin/complaints');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal memperbarui status keluhan.' };
+  }
+}
+
+export async function fetchLaporanStats() {
+  try {
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const [totalRes, selesaiRes, prosesRes, revenueThisMonthRes, revenueLastMonthRes] = await Promise.all([
+      sql`SELECT COUNT(*) FROM packages`,
+      sql`SELECT COUNT(*) FROM packages WHERE status = 'Selesai'`,
+      sql`SELECT COUNT(*) FROM packages WHERE status != 'Selesai'`,
+      sql`SELECT COALESCE(SUM(total_price), 0) as total FROM packages WHERE created_at >= ${thisMonthStart}`,
+      sql`SELECT COALESCE(SUM(total_price), 0) as total FROM packages WHERE created_at >= ${lastMonthStart} AND created_at < ${lastMonthEnd}`,
+    ]);
+
+    const revenueThisMonth = Number(revenueThisMonthRes[0].total);
+    const revenueLastMonth = Number(revenueLastMonthRes[0].total);
+    let percentChange = 0;
+    if (revenueLastMonth > 0) {
+      percentChange = ((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100;
+    } else if (revenueThisMonth > 0) {
+      percentChange = 100;
+    }
+
+    return {
+      totalPaket: Number(totalRes[0].count),
+      selesai: Number(selesaiRes[0].count),
+      dalamProses: Number(prosesRes[0].count),
+      revenueThisMonth,
+      revenueLastMonth,
+      percentChange: Math.round(percentChange * 10) / 10,
+    };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return {
+      totalPaket: 0,
+      selesai: 0,
+      dalamProses: 0,
+      revenueThisMonth: 0,
+      revenueLastMonth: 0,
+      percentChange: 0,
+    };
+  }
+}
+
+export async function fetchDailyRevenue(days: number = 7) {
+  try {
+    const rows = await sql`
+      SELECT 
+        DATE_TRUNC('day', created_at AT TIME ZONE 'Asia/Jakarta') AS day,
+        COALESCE(SUM(total_price), 0) AS revenue
+      FROM packages
+      WHERE created_at >= NOW() - INTERVAL '${sql.unsafe(String(days))} days'
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+
+    // Build a complete array for all N days (fill missing days with 0)
+    const result: { date: string; revenue: number }[] = [];
+    const now = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const found = rows.find((r: any) => {
+        const rowDate = new Date(r.day).toISOString().slice(0, 10);
+        return rowDate === dateStr;
+      });
+      result.push({ date: dateStr, revenue: found ? Number(found.revenue) : 0 });
+    }
+    return result;
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
+export async function fetchDailyPackageVolume(days: number = 7) {
+  try {
+    const rows = await sql`
+      SELECT 
+        DATE_TRUNC('day', created_at AT TIME ZONE 'Asia/Jakarta') AS day,
+        COUNT(*) AS count
+      FROM packages
+      WHERE created_at >= NOW() - INTERVAL '${sql.unsafe(String(days))} days'
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+
+    const result: { date: string; count: number }[] = [];
+    const now = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const found = rows.find((r: any) => {
+        const rowDate = new Date(r.day).toISOString().slice(0, 10);
+        return rowDate === dateStr;
+      });
+      result.push({ date: dateStr, count: found ? Number(found.count) : 0 });
+    }
+    return result;
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+

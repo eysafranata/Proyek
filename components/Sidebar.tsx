@@ -26,7 +26,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: 'Beranda', href: '/dashboard', icon: HomeIcon },
     { name: 'Lacak Paket', href: '/lacak-paket', icon: MapPinIcon },
     { name: 'Riwayat', href: '#', icon: ClockIcon },
-    { name: 'Feedback & Keluhan', href: '#', icon: ChatBubbleBottomCenterTextIcon },
+    { name: 'Feedback & Keluhan', href: '/dashboard/feedback', icon: ChatBubbleBottomCenterTextIcon },
     { name: 'Profil', href: '/dashboard/profile', icon: UserIcon },
   ];
 

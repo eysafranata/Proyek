@@ -261,13 +261,21 @@ export default function DashboardAdmin() {
         {/* Aksi Cepat */}
         <div className="bg-white rounded-[24px] md:rounded-[32px] p-6 md:p-8 shadow-sm border border-gray-100">
           <h2 className="text-[#0c5132] font-extrabold text-sm md:text-lg mb-4 md:mb-6">Aksi Cepat</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
             {/* Tambah Paket */}
             <Link href="/dashboard-admin/add-package" className="bg-[#eaf9eb] rounded-[20px] flex flex-col items-center justify-center p-5 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-transparent hover:border-green-100">
               <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-[#24a173] flex items-center justify-center mb-3 text-[#24a173]">
                 <CubeIcon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
               </div>
               <span className="text-[#0c5132] font-extrabold text-xs md:text-sm">Tambah Paket</span>
+            </Link>
+
+            {/* Kelola Paket */}
+            <Link href="/dashboard-admin/packages" className="bg-[#fff8eb] rounded-[20px] flex flex-col items-center justify-center p-5 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-transparent hover:border-amber-100">
+               <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-[#f59e0b] flex items-center justify-center mb-3 text-[#f59e0b]">
+                <TruckIcon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
+              </div>
+              <span className="text-[#0c5132] font-extrabold text-xs md:text-sm">Kelola Paket</span>
             </Link>
             
             {/* Kelola User */}
@@ -287,7 +295,7 @@ export default function DashboardAdmin() {
             </Link>
 
             {/* Keluhan */}
-            <Link href="#" className="bg-[#fff1eb] rounded-[20px] flex flex-col items-center justify-center p-5 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-transparent hover:border-orange-100">
+            <Link href="/dashboard-admin/complaints" className="bg-[#fff1eb] rounded-[20px] flex flex-col items-center justify-center p-5 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-transparent hover:border-orange-100">
                <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-[#ff6b35] flex items-center justify-center mb-3 text-[#ff6b35]">
                 <ExclamationCircleIcon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
               </div>
