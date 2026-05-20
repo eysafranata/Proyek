@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import postgres from 'postgres';
-import { invoices, customers, revenue, users } from '../lib/placeholder-data';
+import { users } from '../lib/placeholder-data';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -19,6 +19,40 @@ async function seedUsers(sql: any) {
     );
   `;
 
+  await sql`DROP TABLE IF EXISTS packages CASCADE`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS packages (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      resi VARCHAR(50) NOT NULL UNIQUE,
+      user_id UUID NOT NULL,
+      sender_name VARCHAR(255) NOT NULL,
+      receiver_name VARCHAR(255) NOT NULL,
+      origin VARCHAR(255) NOT NULL,
+      destination VARCHAR(255) NOT NULL,
+      weight FLOAT NOT NULL,
+      type VARCHAR(100),
+      payment_method VARCHAR(100),
+      total_price INT NOT NULL,
+      status VARCHAR(50) DEFAULT 'Menunggu Konfirmasi',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  await sql`DROP TABLE IF EXISTS complaints CASCADE`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS complaints (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      user_id UUID NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      type VARCHAR(100) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      status VARCHAR(50) DEFAULT 'Pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   const insertedUsers = await Promise.all(
     users.map(async (user) => {
       const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -33,85 +67,10 @@ async function seedUsers(sql: any) {
   return insertedUsers;
 }
 
-async function seedInvoices(sql: any) {
-  await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS invoices (
-      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      customer_id UUID NOT NULL,
-      amount INT NOT NULL,
-      status VARCHAR(255) NOT NULL,
-      date DATE NOT NULL
-    );
-  `;
-
-  const insertedInvoices = await Promise.all(
-    invoices.map(
-      (invoice) => sql`
-        INSERT INTO invoices (customer_id, amount, status, date)
-        VALUES (${invoice.customer_id}, ${invoice.amount}, ${invoice.status}, ${invoice.date})
-        ON CONFLICT (id) DO NOTHING;
-      `,
-    ),
-  );
-
-  return insertedInvoices;
-}
-
-async function seedCustomers(sql: any) {
-  await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS customers (
-      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL,
-      image_url VARCHAR(255) NOT NULL
-    );
-  `;
-
-  const insertedCustomers = await Promise.all(
-    customers.map(
-      (customer) => sql`
-        INSERT INTO customers (id, name, email, image_url)
-        VALUES (${customer.id}, ${customer.name}, ${customer.email}, ${customer.image_url})
-        ON CONFLICT (id) DO NOTHING;
-      `,
-    ),
-  );
-
-  return insertedCustomers;
-}
-
-async function seedRevenue(sql: any) {
-  await sql`
-    CREATE TABLE IF NOT EXISTS revenue (
-      month VARCHAR(4) NOT NULL UNIQUE,
-      revenue INT NOT NULL
-    );
-  `;
-
-  const insertedRevenue = await Promise.all(
-    revenue.map(
-      (rev) => sql`
-        INSERT INTO revenue (month, revenue)
-        VALUES (${rev.month}, ${rev.revenue})
-        ON CONFLICT (month) DO NOTHING;
-      `,
-    ),
-  );
-
-  return insertedRevenue;
-}
-
 export async function GET() {
   try {
-    const result = await sql.begin(async (sql) => {
+    await sql.begin(async (sql) => {
       await seedUsers(sql);
-      await seedCustomers(sql);
-      await seedInvoices(sql);
-      await seedRevenue(sql);
     });
 
     return Response.json({ message: 'Database seeded successfully' });
