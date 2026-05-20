@@ -600,3 +600,33 @@ export async function fetchDailyPackageVolume(days: number = 7) {
   }
 }
 
+export async function fetchDailyUserRegistration(days: number = 7) {
+  try {
+    const rows = await sql`
+      SELECT 
+        DATE_TRUNC('day', created_at AT TIME ZONE 'Asia/Jakarta') AS day,
+        COUNT(*) AS count
+      FROM users
+      WHERE created_at >= NOW() - INTERVAL '${sql.unsafe(String(days))} days'
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+
+    const result: { date: string; count: number }[] = [];
+    const now = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const found = rows.find((r: any) => {
+        const rowDate = new Date(r.day).toISOString().slice(0, 10);
+        return rowDate === dateStr;
+      });
+      result.push({ date: dateStr, count: found ? Number(found.count) : 0 });
+    }
+    return result;
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}

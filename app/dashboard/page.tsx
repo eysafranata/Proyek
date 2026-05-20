@@ -10,10 +10,11 @@ import {
   ArrowTrendingUpIcon,
   StarIcon,
   MagnifyingGlassIcon,
-  ClockIcon
+  ClockIcon,
+  InboxIcon
 } from '@heroicons/react/24/outline';
 import Sidebar from '@/components/Sidebar';
-import { getCurrentUser } from '@/app/lib/actions';
+import { getCurrentUser, fetchMyPackages } from '@/app/lib/actions';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -23,16 +24,27 @@ const poppins = Poppins({
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userName, setUserName] = useState('...');
+  const [packages, setPackages] = useState<any[]>([]);
 
   useEffect(() => {
-    async function loadUser() {
+    async function loadData() {
       const data = await getCurrentUser();
       if (data) {
         setUserName(data.name);
       }
+      const pkgs = await fetchMyPackages();
+      if (pkgs) {
+        setPackages(pkgs);
+      }
     }
-    loadUser();
+    loadData();
   }, []);
+
+  const totalPaket = packages.length;
+  const paketSelesai = packages.filter(p => p.status === 'Selesai').length;
+  const paketAktif = totalPaket - paketSelesai;
+  
+  const activePackagesList = packages.filter(p => p.status !== 'Selesai').slice(0, 3);
 
   return (
     <div className={`min-h-screen bg-[#f4fcf7] pb-10 ${poppins.className}`}>
@@ -72,19 +84,19 @@ export default function Dashboard() {
               {/* Card 1 */}
               <div className="bg-white flex-1 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 py-5 md:py-8 flex flex-col items-center justify-center text-center transition-transform hover:-translate-y-1">
                 <CubeIcon className="w-6 h-6 md:w-9 md:h-9 text-[#24a173] mb-2 md:mb-3" />
-                <div className="text-2xl md:text-4xl font-bold text-[#0c5132] leading-none mb-1 md:mb-2">3</div>
+                <div className="text-2xl md:text-4xl font-bold text-[#0c5132] leading-none mb-1 md:mb-2">{totalPaket}</div>
                 <div className="text-[11px] md:text-sm font-semibold text-gray-500">Total Paket</div>
               </div>
               {/* Card 2 */}
               <div className="bg-white flex-1 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 py-5 md:py-8 flex flex-col items-center justify-center text-center transition-transform hover:-translate-y-1">
                 <ArrowTrendingUpIcon className="w-6 h-6 md:w-9 md:h-9 text-[#24a173] mb-2 md:mb-3" />
-                <div className="text-2xl md:text-4xl font-bold text-[#0c5132] leading-none mb-1 md:mb-2">2</div>
+                <div className="text-2xl md:text-4xl font-bold text-[#0c5132] leading-none mb-1 md:mb-2">{paketAktif}</div>
                 <div className="text-[11px] md:text-sm font-semibold text-gray-500">Aktif</div>
               </div>
               {/* Card 3 */}
               <div className="bg-white flex-1 rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 py-5 md:py-8 flex flex-col items-center justify-center text-center transition-transform hover:-translate-y-1">
                 <StarIcon className="w-6 h-6 md:w-9 md:h-9 text-[#24a173] mb-2 md:mb-3" />
-                <div className="text-2xl md:text-4xl font-bold text-[#0c5132] leading-none mb-1 md:mb-2">1</div>
+                <div className="text-2xl md:text-4xl font-bold text-[#0c5132] leading-none mb-1 md:mb-2">{paketSelesai}</div>
                 <div className="text-[11px] md:text-sm font-semibold text-gray-500">Selesai</div>
               </div>
             </div>
@@ -108,7 +120,7 @@ export default function Dashboard() {
                 <p className="text-[11px] md:text-sm text-gray-400">Cek status pengiriman</p>
               </Link>
 
-              <Link href="#" className="bg-white border border-gray-200 rounded-3xl p-5 md:p-10 flex-1 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+              <Link href="/lacak-paket" className="bg-white border border-gray-200 rounded-3xl p-5 md:p-10 flex-1 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-shadow">
                 <div className="bg-[#e6f7ec] w-14 h-14 md:w-20 md:h-20 rounded-[20px] flex items-center justify-center mb-4">
                   <ClockIcon className="w-6 h-6 md:w-9 md:h-9 text-[#24a173]" strokeWidth={2.5} />
                 </div>
@@ -122,45 +134,40 @@ export default function Dashboard() {
           <div className="mb-10 md:mb-14">
             <div className="flex justify-between items-center mb-4 md:mb-6">
               <h2 className="text-[#0c5132] font-bold text-[16px] md:text-xl">Paket Aktif</h2>
-              <Link href="#" className="text-[#24a173] text-[12px] md:text-base font-bold hover:underline">Lihat Semua</Link>
+              <Link href="/lacak-paket" className="text-[#24a173] text-[12px] md:text-base font-bold hover:underline">Lihat Semua</Link>
             </div>
 
             <div className="flex flex-col gap-4 md:gap-6">
-              {/* Item 1 */}
-              <div className="bg-white border border-gray-200 rounded-[24px] md:rounded-[32px] p-5 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between transition-shadow hover:shadow-md">
-                <div>
-                  <div className="flex justify-between md:justify-start items-center mb-2 md:mb-3 gap-4">
-                    <span className="font-bold text-gray-800 text-[14px] md:text-lg">CKL2026040001</span>
-                    <span className="md:hidden bg-[#e6f7ec] text-[#24a173] text-[11px] font-bold px-3 py-1.5 rounded-full">Dalam Perjalanan</span>
+              {activePackagesList.length === 0 ? (
+                 <div className="bg-white border border-gray-200 rounded-[24px] p-8 md:p-12 shadow-sm flex flex-col items-center justify-center text-center">
+                   <div className="bg-gray-50 p-4 rounded-full mb-4">
+                     <InboxIcon className="w-10 h-10 md:w-12 md:h-12 text-gray-300" />
+                   </div>
+                   <h3 className="text-gray-900 font-bold text-[16px] md:text-[18px] mb-2">Belum Ada Paket Aktif</h3>
+                   <p className="text-gray-500 text-[13px] md:text-[15px] max-w-sm">Saat ini tidak ada paket yang sedang dalam proses pengiriman.</p>
+                 </div>
+              ) : (
+                activePackagesList.map((pkg) => (
+                  <div key={pkg.id} className="bg-white border border-gray-200 rounded-[24px] md:rounded-[32px] p-5 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between transition-shadow hover:shadow-md">
+                    <div>
+                      <div className="flex justify-between md:justify-start items-center mb-2 md:mb-3 gap-4">
+                        <span className="font-bold text-gray-800 text-[14px] md:text-lg">{pkg.resi}</span>
+                        <span className="md:hidden bg-[#e6f7ec] text-[#24a173] text-[11px] font-bold px-3 py-1.5 rounded-full">{pkg.status || 'Dalam Perjalanan'}</span>
+                      </div>
+                      <p className="text-gray-500 text-[12px] md:text-base mb-4 md:mb-5 font-medium">{pkg.origin} → {pkg.destination}</p>
+                      <div className="flex items-center gap-2 text-[12px] md:text-sm text-gray-400 font-medium">
+                        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                          <CubeIcon className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <span className="text-[#24a173]">Ke:</span> {pkg.receiver_name}
+                      </div>
+                    </div>
+                    <div className="hidden md:block">
+                      <span className="bg-[#e6f7ec] text-[#24a173] text-base md:text-lg font-bold px-6 py-3 rounded-full">{pkg.status || 'Dalam Perjalanan'}</span>
+                    </div>
                   </div>
-                  <p className="text-gray-500 text-[12px] md:text-base mb-4 md:mb-5 font-medium">Jakarta Pusat → Bandung</p>
-                  <div className="flex items-center gap-2 text-[12px] md:text-sm text-gray-400 font-medium">
-                    <img src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop" alt="Foto Kurir" className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border border-gray-200" />
-                    <span className="text-[#24a173]">Kurir:</span> Ahmad Kurniawan
-                  </div>
-                </div>
-                <div className="hidden md:block">
-                  <span className="bg-[#e6f7ec] text-[#24a173] text-base md:text-lg font-bold px-6 py-3 rounded-full">Dalam Perjalanan</span>
-                </div>
-              </div>
-
-              {/* Item 2 */}
-              <div className="bg-white border border-gray-200 rounded-[24px] md:rounded-[32px] p-5 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between transition-shadow hover:shadow-md">
-                <div>
-                  <div className="flex justify-between md:justify-start items-center mb-2 md:mb-3 gap-4">
-                    <span className="font-bold text-gray-800 text-[14px] md:text-lg">CKL2026040003</span>
-                    <span className="md:hidden bg-[#e6f7ec] text-[#24a173] text-[11px] font-bold px-3 py-1.5 rounded-full">Dalam Pengiriman</span>
-                  </div>
-                  <p className="text-gray-500 text-[12px] md:text-base mb-4 md:mb-5 font-medium">Yogyakarta → Semarang</p>
-                  <div className="flex items-center gap-2 text-[12px] md:text-sm text-gray-400 font-medium">
-                    <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop" alt="Foto Kurir" className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border border-gray-200" />
-                    <span className="text-[#24a173]">Kurir:</span> Ahmad Kurniawan
-                  </div>
-                </div>
-                <div className="hidden md:block">
-                  <span className="bg-[#e6f7ec] text-[#24a173] text-base md:text-lg font-bold px-6 py-3 rounded-full">Dalam Pengiriman</span>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
 

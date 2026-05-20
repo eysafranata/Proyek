@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Poppins } from 'next/font/google';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   Bars3Icon,
@@ -13,7 +12,12 @@ import {
   ChartBarIcon,
   ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
-import { getUserStats } from '@/app/lib/actions';
+import { 
+  getUserStats, 
+  fetchLaporanStats, 
+  fetchDailyPackageVolume, 
+  fetchDailyUserRegistration 
+} from '@/app/lib/actions';
 import AdminSidebar from '@/app/ui/dashboard/admin-sidebar';
 
 const poppins = Poppins({
@@ -21,72 +25,91 @@ const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
 });
 
-function formatSysDate(d: Date) {
+function formatDateLabel(dateStr: string): string {
+  if (!dateStr) return '';
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+  const d = new Date(dateStr + 'T00:00:00');
   return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-function buildSmoothPath(data: any[], width: number, height: number, maxVal: number) {
-  if (data.length === 0) return '';
-  const dx = width / Math.max(data.length - 1, 1);
-  let d = `M0,${height - (data[0].value / maxVal) * height}`;
-  for (let i = 1; i < data.length; i++) {
-     const prevX = (i - 1) * dx;
-     const prevY = height - (data[i - 1].value / maxVal) * height;
-     const currX = i * dx;
-     const currY = height - (data[i].value / maxVal) * height;
-     const cx1 = prevX + dx * 0.5;
-     const cy1 = prevY;
-     const cx2 = prevX + dx * 0.5;
-     const cy2 = currY;
-     d += ` C${cx1},${cy1} ${cx2},${cy2} ${currX},${currY}`;
+function buildSmoothPath(
+  data: number[],
+  svgW: number,
+  svgH: number,
+  maxVal: number,
+): { line: string; fill: string } {
+  if (data.length === 0) return { line: '', fill: '' };
+  const padT = 10, padB = 10;
+  const h = svgH - padT - padB;
+  const dx = svgW / Math.max(data.length - 1, 1);
+  const getY = (v: number) => padT + h - (maxVal > 0 ? (v / maxVal) * h : 0);
+  const pts = data.map((v, i) => ({ x: i * dx, y: getY(v) }));
+  let line = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const cx1 = pts[i - 1].x + dx * 0.45;
+    const cy1 = pts[i - 1].y;
+    const cx2 = pts[i].x - dx * 0.45;
+    const cy2 = pts[i].y;
+    line += ` C${cx1},${cy1} ${cx2},${cy2} ${pts[i].x},${pts[i].y}`;
   }
-  return d;
+  const fill = line + ` L${pts[pts.length - 1].x},${svgH} L${pts[0].x},${svgH} Z`;
+  return { line, fill };
 }
 
 export default function DashboardAdmin() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [totalCustomers, setTotalCustomers] = useState(3);
-  const [chartData, setChartData] = useState([
-    { time: new Date(2026, 3, 1), value: 12 },
-    { time: new Date(2026, 3, 6), value: 9 },
-    { time: new Date(2026, 3, 11), value: 6 },
-    { time: new Date(2026, 3, 16), value: 3 },
-    { time: new Date(2026, 3, 21), value: 0 },
-    { time: new Date(2026, 3, 26), value: 5 },
-  ]);
+  const [stats, setStats] = useState({
+    totalCustomers: 0,
+    totalPaket: 0,
+    dalamProses: 0,
+    selesai: 0,
+  });
+  const [packageVolume, setPackageVolume] = useState<{ date: string; count: number }[]>([]);
+  const [userRegistration, setUserRegistration] = useState<{ date: string; count: number }[]>([]);
 
   useEffect(() => {
-    // Initial fetch
-    const fetchStats = async () => {
-      const stats = await getUserStats();
-      setTotalCustomers(stats.totalCustomers);
+    const loadData = async () => {
+      try {
+        const [userStats, laporanStats, vol, reg] = await Promise.all([
+          getUserStats(),
+          fetchLaporanStats(),
+          fetchDailyPackageVolume(7),
+          fetchDailyUserRegistration(7),
+        ]);
+        setStats({
+          totalCustomers: userStats.totalCustomers,
+          totalPaket: laporanStats.totalPaket,
+          dalamProses: laporanStats.dalamProses,
+          selesai: laporanStats.selesai,
+        });
+        setPackageVolume(vol);
+        setUserRegistration(reg);
+      } catch (err) {
+        console.error(err);
+      }
     };
-    fetchStats();
 
-    // Refresh setiap 2 menit nyata (120000 ms)
-    const interval = setInterval(async () => {
-      const stats = await getUserStats();
-      setTotalCustomers(stats.totalCustomers);
-
-      setChartData(prev => {
-        const lastTime = prev[prev.length - 1].time;
-        const nextTime = new Date(lastTime.getTime() + 8 * 60 * 60 * 1000); // Tambah 8 jam
-        const nextValue = stats.totalCustomers + Math.floor(Math.random() * 3); // Sync slightly with total
-
-        const newArray = [...prev, { time: nextTime, value: nextValue }];
-        if (newArray.length > 6) {
-          newArray.shift();
-        }
-        return newArray;
-      });
-    }, 120000); 
+    loadData();
+    const interval = setInterval(loadData, 120000); 
     
     return () => clearInterval(interval);
   }, []);
 
-  const pathData = buildSmoothPath(chartData, 800, 180, 12);
-  const fillData = `${pathData} L800,180 L0,180 Z`;
+  const SVG_W = 800;
+  const SVG_H = 180;
+
+  // Chart 1 (Package Volume)
+  const volValues = packageVolume.map((d) => d.count);
+  const maxVol = Math.max(...volValues, 1);
+  const { line: volLine, fill: volFill } = buildSmoothPath(volValues, SVG_W, SVG_H, maxVol);
+  const volYLabels = [maxVol, Math.round(maxVol * 0.75), Math.round(maxVol * 0.5), Math.round(maxVol * 0.25), 0];
+
+  // Chart 2 (User Registration)
+  const regValues = userRegistration.map((d) => d.count);
+  const maxReg = Math.max(...regValues, 1);
+  const { line: regLine, fill: regFill } = buildSmoothPath(regValues, SVG_W, SVG_H, maxReg);
+  const regYLabels = [maxReg, Math.round(maxReg * 0.75), Math.round(maxReg * 0.5), Math.round(maxReg * 0.25), 0];
+
   return (
     <div className={`min-h-screen bg-[#f4fcf7] pb-10 ${poppins.className}`}>
       <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
@@ -124,11 +147,10 @@ export default function DashboardAdmin() {
               <div className="bg-[#4182FF] text-white p-3 md:p-3.5 rounded-[14px] shadow-sm">
                 <UsersIcon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
               </div>
-              <span className="text-xs font-bold text-[#24a173] px-2 py-1 bg-[#e6fce5] rounded-full">+12%</span>
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-400 font-semibold mb-1 tracking-wide">Total Pengguna</p>
-              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">{totalCustomers}</h3>
+              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">{stats.totalCustomers}</h3>
             </div>
           </div>
 
@@ -138,11 +160,10 @@ export default function DashboardAdmin() {
               <div className="bg-[#24a173] text-white p-3 md:p-3.5 rounded-[14px] shadow-sm">
                 <CubeIcon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
               </div>
-              <span className="text-xs font-bold text-[#24a173] px-2 py-1 bg-[#e6fce5] rounded-full">+8%</span>
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-400 font-semibold mb-1 tracking-wide">Total Pengiriman</p>
-              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">3</h3>
+              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">{stats.totalPaket}</h3>
             </div>
           </div>
 
@@ -152,25 +173,23 @@ export default function DashboardAdmin() {
               <div className="bg-[#F8A000] text-white p-3 md:p-3.5 rounded-[14px] shadow-sm">
                 <TruckIcon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
               </div>
-              <span className="text-xs font-bold text-[#24a173] px-2 py-1 bg-[#e6fce5] rounded-full">5 paket</span>
             </div>
             <div>
               <p className="text-xs md:text-sm text-gray-400 font-semibold mb-1 tracking-wide">Dalam Pengiriman</p>
-              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">1</h3>
+              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">{stats.dalamProses}</h3>
             </div>
           </div>
 
-          {/* Card 4: Selesai Hari Ini */}
+          {/* Card 4: Selesai */}
           <div className="bg-white rounded-[24px] p-6 shadow-sm hover:shadow-md border border-gray-100 flex flex-col justify-between transition-all duration-300 hover:border-emerald-100">
             <div className="flex justify-between items-start mb-6">
               <div className="bg-[#1b8555] text-white p-3 md:p-3.5 rounded-[14px] shadow-sm">
                 <CheckCircleIcon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
               </div>
-              <span className="text-xs font-bold text-[#24a173] px-2 py-1 bg-[#e6fce5] rounded-full">+20%</span>
             </div>
             <div>
-              <p className="text-xs md:text-sm text-gray-400 font-semibold mb-1 tracking-wide">Selesai Hari Ini</p>
-              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">1</h3>
+              <p className="text-xs md:text-sm text-gray-400 font-semibold mb-1 tracking-wide">Selesai</p>
+              <h3 className="text-3xl md:text-4xl font-extrabold text-[#0c5132]">{stats.selesai}</h3>
             </div>
           </div>
         </div>
@@ -182,7 +201,7 @@ export default function DashboardAdmin() {
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
                 <CubeIcon className="w-5 h-5 md:w-6 md:h-6 text-[#24a173]" strokeWidth={2} />
-                <h3 className="font-extrabold text-[#0c5132] text-sm md:text-lg">Tren Pengiriman (Bulan Ini)</h3>
+                <h3 className="font-extrabold text-[#0c5132] text-sm md:text-lg">Tren Pengiriman (7 Hari Terakhir)</h3>
               </div>
               <span className="bg-[#e6fce5] text-[#24a173] text-[10px] md:text-xs font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm border border-emerald-50">
                 <span className="w-2 h-2 bg-[#24a173] rounded-full inline-block animate-pulse"></span>
@@ -203,18 +222,15 @@ export default function DashboardAdmin() {
                 <line x1="0" y1="45" x2="800" y2="45" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 <line x1="0" y1="0" x2="800" y2="0" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 
-                {/* Simulated Data Curve */}
-                <path d="M0,110 C40,110 50,110 60,105 C70,100 80,120 90,140 C100,160 110,165 120,150 C130,135 140,90 150,60 C160,30 170,25 180,45 C190,65 200,80 210,80 C220,80 230,60 240,45 C250,30 260,35 270,55 C280,75 290,100 300,100 C310,100 320,60 330,35 C340,10 350,15 360,25 C370,35 380,80 390,120 C400,160 410,180 430,180 C450,180 800,180 800,180" 
-                      fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M0,110 C40,110 50,110 60,105 C70,100 80,120 90,140 C100,160 110,165 120,150 C130,135 140,90 150,60 C160,30 170,25 180,45 C190,65 200,80 210,80 C220,80 230,60 240,45 C250,30 260,35 270,55 C280,75 290,100 300,100 C310,100 320,60 330,35 C340,10 350,15 360,25 C370,35 380,80 390,120 C400,160 410,180 430,180 L430,180 L800,180 L800,180 L0,180 Z" 
-                      fill="url(#colorGreen)" />
+                {volFill && <path d={volFill} fill="url(#colorGreen)" />}
+                {volLine && <path d={volLine} fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
               </svg>
               {/* x-axis labels */}
-              <div className="absolute bottom-0 left-0 w-full flex justify-between pt-2 px-1 text-[10px] md:text-xs text-gray-400 font-medium">
-                <span>1 Apr</span><span>6 Apr</span><span>11 Apr</span><span>16 Apr</span><span>21 Apr</span><span>26 Apr</span>
+              <div className="absolute bottom-0 left-0 w-full flex justify-between pt-2 px-1 text-[10px] md:text-xs text-gray-400 font-medium tracking-tighter sm:tracking-normal">
+                {packageVolume.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
               </div>
               <div className="absolute top-0 left-0 h-full flex flex-col justify-between pb-[18px] pr-2 text-[10px] md:text-xs text-gray-400 font-medium -translate-x-full pr-3">
-                <span>40</span><span>30</span><span>20</span><span>10</span><span>0</span>
+                {volYLabels.map((v, i) => <span key={i}>{v}</span>)}
               </div>
             </div>
           </div>
@@ -224,7 +240,7 @@ export default function DashboardAdmin() {
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
                 <UsersIcon className="w-5 h-5 md:w-6 md:h-6 text-[#4182FF]" strokeWidth={2} />
-                <h3 className="font-extrabold text-[#0c5132] text-sm md:text-lg">Pendaftaran Pengguna Baru</h3>
+                <h3 className="font-extrabold text-[#0c5132] text-sm md:text-lg">Pendaftaran Pengguna Baru (7 Hari Terakhir)</h3>
               </div>
               <span className="bg-[#eef4fc] text-[#4182FF] text-[10px] md:text-xs font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm border border-blue-50">
                 <span className="w-2 h-2 bg-[#4182FF] rounded-full inline-block animate-pulse"></span>
@@ -245,14 +261,14 @@ export default function DashboardAdmin() {
                 <line x1="0" y1="45" x2="800" y2="45" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 <line x1="0" y1="0" x2="800" y2="0" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 
-                <path d={pathData} fill="none" stroke="#4182FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                <path d={fillData} fill="url(#colorBlue)" />
+                {regFill && <path d={regFill} fill="url(#colorBlue)" />}
+                {regLine && <path d={regLine} fill="none" stroke="#4182FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
               </svg>
               <div className="absolute bottom-0 left-0 w-full flex justify-between pt-2 px-1 text-[10px] md:text-xs text-gray-400 font-medium tracking-tighter sm:tracking-normal">
-                {chartData.map((d, i) => <span key={i} className="flex-1 text-center">{formatSysDate(d.time)}</span>)}
+                {userRegistration.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
               </div>
               <div className="absolute top-0 left-0 h-full flex flex-col justify-between pb-[18px] pr-2 text-[10px] md:text-xs text-gray-400 font-medium -translate-x-full pr-3">
-                <span>12</span><span>9</span><span>6</span><span>3</span><span>0</span>
+                {regYLabels.map((v, i) => <span key={i}>{v}</span>)}
               </div>
             </div>
           </div>
