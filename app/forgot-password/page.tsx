@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
+import { checkUserExists, resetPassword } from '@/app/lib/actions';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -17,11 +18,12 @@ export default function ForgotPasswordPage() {
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [userId, setUserId] = useState('');
   
   const [errorToast, setErrorToast] = useState('');
   const [successToast, setSuccessToast] = useState('');
 
-  const handleStep1Submit = (e: React.FormEvent) => {
+  const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorToast('');
     setSuccessToast('');
@@ -31,15 +33,18 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    if (emailOrUsername.toLowerCase() === 'salah') {
-      setErrorToast('Email/username tidak ditemukan. Pastikan Anda sudah terdaftar.');
-    } else {
+    const result = await checkUserExists(emailOrUsername);
+    
+    if (result.error) {
+      setErrorToast(result.error);
+    } else if (result.success && result.userId) {
+      setUserId(result.userId);
       setSuccessToast(`Link reset password sudah dikirim ke ${emailOrUsername}. Silakan cek email Anda.`);
       setStep(2);
     }
   };
 
-  const handleStep2Submit = (e: React.FormEvent) => {
+  const handleStep2Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorToast('');
     setSuccessToast('');
@@ -54,8 +59,25 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    // Success logic for demo (redirecting back to login)
-    router.push('/login');
+    if (!userId) {
+      setErrorToast('Terjadi kesalahan, silakan ulangi dari awal.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('newPassword', newPassword);
+    formData.append('confirmPassword', confirmPassword);
+
+    const result = await resetPassword(userId, formData);
+    
+    if (result.error) {
+      setErrorToast(result.error);
+    } else {
+      setSuccessToast('Password berhasil direset. Silakan login dengan password baru.');
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+    }
   };
 
   return (

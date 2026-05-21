@@ -630,3 +630,39 @@ export async function fetchDailyUserRegistration(days: number = 7) {
     return [];
   }
 }
+
+export async function checkUserExists(emailOrUsername: string) {
+  try {
+    const users = await sql`
+      SELECT id FROM users 
+      WHERE LOWER(email) = LOWER(${emailOrUsername}) OR LOWER(name) = LOWER(${emailOrUsername})
+    `;
+    if (users.length === 0) {
+      return { error: 'Email/username tidak ditemukan. Pastikan Anda sudah terdaftar.' };
+    }
+    return { success: true, userId: users[0].id };
+  } catch (error) {
+    return { error: 'Database Error: Gagal mengecek pengguna.' };
+  }
+}
+
+export async function resetPassword(userId: string, formData: FormData) {
+  const newPassword = formData.get('newPassword') as string;
+  const confirmPassword = formData.get('confirmPassword') as string;
+
+  if (newPassword !== confirmPassword) {
+    return { error: 'Konfirmasi password tidak cocok.' };
+  }
+  if (newPassword.length < 6) {
+    return { error: 'Password harus minimal 6 karakter.' };
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await sql`UPDATE users SET password = ${hashedPassword} WHERE id = ${userId}`;
+    return { success: true };
+  } catch (error) {
+    return { error: 'Database Error: Gagal mereset password.' };
+  }
+}
+
