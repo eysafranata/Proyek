@@ -120,7 +120,7 @@ export default function Dashboard() {
                 <p className="text-[11px] md:text-sm text-gray-400">Cek status pengiriman</p>
               </Link>
 
-              <Link href="/lacak-paket" className="bg-white border border-gray-200 rounded-3xl p-5 md:p-10 flex-1 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+              <Link href="/dashboard/riwayat" className="bg-white border border-gray-200 rounded-3xl p-5 md:p-10 flex-1 flex flex-col items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-shadow">
                 <div className="bg-[#e6f7ec] w-14 h-14 md:w-20 md:h-20 rounded-[20px] flex items-center justify-center mb-4">
                   <ClockIcon className="w-6 h-6 md:w-9 md:h-9 text-[#24a173]" strokeWidth={2.5} />
                 </div>

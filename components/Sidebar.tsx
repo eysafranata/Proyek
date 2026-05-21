@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigation = [
     { name: 'Beranda', href: '/dashboard', icon: HomeIcon },
     { name: 'Lacak Paket', href: '/lacak-paket', icon: MapPinIcon },
-    { name: 'Riwayat', href: '#', icon: ClockIcon },
+    { name: 'Riwayat', href: '/dashboard/riwayat', icon: ClockIcon },
     { name: 'Feedback & Keluhan', href: '/dashboard/feedback', icon: ChatBubbleBottomCenterTextIcon },
     { name: 'Profil', href: '/dashboard/profile', icon: UserIcon },
   ];
