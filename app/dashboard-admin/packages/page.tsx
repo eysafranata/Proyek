@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { Poppins } from "next/font/google";
@@ -14,9 +14,12 @@ import {
   ArrowPathIcon,
   InboxIcon,
   FunnelIcon,
+  PencilIcon,
+  XMarkIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import AdminSidebar from "@/app/ui/dashboard/admin-sidebar";
-import { fetchAllPackages, updatePackageStatus } from "@/app/lib/actions";
+import { fetchAllPackages, updatePackageStatus, updatePackageDetails, deletePackage, fetchVehicles } from "@/app/lib/actions";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -63,6 +66,17 @@ export default function KelolaPaketPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
 
+  const [editingPackage, setEditingPackage] = useState<any | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    status: "",
+    status_barang: "",
+    status_transaksi: "",
+    plat_kendaraan: "",
+    total_price: 0,
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+
   const total = packages.length;
   const selesai = packages.filter((p) => p.status === "Selesai").length;
   const proses = packages.filter((p) => p.status !== "Selesai").length;
@@ -83,6 +97,14 @@ export default function KelolaPaketPage() {
     loadPackages();
   }, [loadPackages]);
 
+  useEffect(() => {
+    async function loadVehicles() {
+      const v = await fetchVehicles();
+      setVehicles(v);
+    }
+    loadVehicles();
+  }, []);
+
   const handleStatusChange = async (id: string, newStatus: string) => {
     setLoadingIds((prev) => ({ ...prev, [id]: true }));
     const res = await updatePackageStatus(id, newStatus);
@@ -94,6 +116,59 @@ export default function KelolaPaketPage() {
       loadPackages();
     } else {
       alert(res.error ?? "Gagal mengubah status.");
+    }
+  };
+
+  const openEditModal = (pkg: any) => {
+    setEditingPackage(pkg);
+    setEditFormData({
+      status: pkg.status,
+      status_barang: pkg.status_barang || "Aman",
+      status_transaksi: pkg.status_transaksi || "Belum Lunas",
+      plat_kendaraan: pkg.plat_kendaraan || "",
+      total_price: pkg.total_price || 0,
+    });
+  };
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPackage) return;
+    setIsSavingEdit(true);
+    const data = new FormData();
+    data.append("status", editFormData.status);
+    data.append("status_barang", editFormData.status_barang);
+    data.append("status_transaksi", editFormData.status_transaksi);
+    data.append("plat_kendaraan", editFormData.plat_kendaraan);
+    data.append("total_price", editFormData.total_price.toString());
+
+    const result = await updatePackageDetails(editingPackage.id, data);
+    setIsSavingEdit(false);
+    if (result.success) {
+      setEditingPackage(null);
+      setSuccessId(editingPackage.id);
+      setTimeout(() => setSuccessId(null), 2000);
+      loadPackages();
+    } else {
+      alert(result.error || "Gagal menyimpan perubahan.");
+    }
+  };
+
+  const handleDeletePackage = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus data paket ini?")) return;
+    
+    setLoadingIds((prev) => ({ ...prev, [id]: true }));
+    const result = await deletePackage(id);
+    setLoadingIds((prev) => ({ ...prev, [id]: false }));
+
+    if (result.success) {
+      loadPackages();
+    } else {
+      alert(result.error || "Gagal menghapus paket.");
     }
   };
 
@@ -272,6 +347,10 @@ export default function KelolaPaketPage() {
                           <span className="text-gray-500">{pkg.weight} Kg · {pkg.type}</span>
                           <span className="font-extrabold text-[#0c5132]">{formatRupiah(Number(pkg.total_price))}</span>
                           <span className="text-gray-400">{pkg.payment_method}</span>
+                          <div className="flex flex-col gap-0.5 mt-1 pt-1 border-t border-gray-100">
+                            <span className="text-[10px] text-gray-500">Barang: <span className="font-bold text-[#0c5132]">{pkg.status_barang || 'Aman'}</span></span>
+                            <span className="text-[10px] text-gray-500">Transaksi: <span className="font-bold text-[#0c5132]">{pkg.status_transaksi || 'Belum Lunas'}</span></span>
+                          </div>
                         </div>
                       </td>
 
@@ -290,21 +369,28 @@ export default function KelolaPaketPage() {
                           </span>
                         ) : (
                           <div className="flex flex-col gap-2">
-                            <select
-                              value={pkg.status}
-                              onChange={(e) => handleStatusChange(pkg.id, e.target.value)}
-                              className="px-3 py-2 rounded-xl text-xs font-bold outline-none border border-gray-200 bg-white text-[#0c5132] cursor-pointer hover:border-[#24a173] transition-all w-full"
-                            >
-                              <option value="Dalam Pengiriman">Dalam Pengiriman</option>
-                              <option value="Dalam Perjalanan">Dalam Perjalanan</option>
-                              <option value="Selesai">Selesai</option>
-                            </select>
                             <button
-                              onClick={() => handleStatusChange(pkg.id, "Selesai")}
-                              className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm w-full"
+                              onClick={() => openEditModal(pkg)}
+                              className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-[#e6fce5] text-[#1b8555] hover:bg-[#d1f5d0] active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm w-full border border-emerald-100"
                             >
-                              <CheckCircleIcon className="w-3.5 h-3.5" />
-                              Tandai Selesai
+                              <PencilIcon className="w-3.5 h-3.5" />
+                              Edit Data
+                            </button>
+                            {pkg.status !== "Selesai" && (
+                              <button
+                                onClick={() => handleStatusChange(pkg.id, "Selesai")}
+                                className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm w-full"
+                              >
+                                <CheckCircleIcon className="w-3.5 h-3.5" />
+                                Selesai Cepat
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeletePackage(pkg.id)}
+                              className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm w-full border border-red-100 mt-1"
+                            >
+                              <TrashIcon className="w-3.5 h-3.5" />
+                              Hapus
                             </button>
                           </div>
                         )}
@@ -323,6 +409,115 @@ export default function KelolaPaketPage() {
           </p>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editingPackage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-10 bg-[#0c5132]/20 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden flex flex-col p-8">
+            <button 
+              onClick={() => setEditingPackage(null)}
+              className="absolute top-4 right-4 p-2 bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+            <h3 className="text-2xl font-extrabold text-[#0c5132] mb-6">Edit Paket 📦</h3>
+            
+            <form onSubmit={handleSaveEdit} className="flex flex-col gap-5">
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Status Pengiriman</label>
+                <select
+                  name="status"
+                  value={editFormData.status}
+                  onChange={handleEditInputChange}
+                  className="w-full px-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                >
+                  <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
+                  <option value="Diproses">Diproses</option>
+                  <option value="Dalam Pengiriman">Dalam Pengiriman</option>
+                  <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+                  <option value="Selesai">Selesai</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Status Barang</label>
+                <select
+                  name="status_barang"
+                  value={editFormData.status_barang}
+                  onChange={handleEditInputChange}
+                  className="w-full px-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                >
+                  <option value="Aman">Aman</option>
+                  <option value="Rusak">Rusak</option>
+                  <option value="Hilang">Hilang</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Kendaraan & Plat</label>
+                <select
+                  name="plat_kendaraan"
+                  value={editFormData.plat_kendaraan}
+                  onChange={handleEditInputChange}
+                  className="w-full px-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                >
+                  <option value="">Tidak Ditentukan</option>
+                  {vehicles.filter(v => v.status_kendaraan === 'Tersedia').map(v => (
+                    <option key={v.id} value={v.kode_kendaraan}>
+                      {v.nama_kendaraan} - {v.kode_kendaraan}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Status Transaksi</label>
+                <select
+                  name="status_transaksi"
+                  value={editFormData.status_transaksi}
+                  onChange={handleEditInputChange}
+                  className="w-full px-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                >
+                  <option value="Belum Lunas">Belum Lunas</option>
+                  <option value="Lunas">Lunas</option>
+                  <option value="Dibatalkan">Dibatalkan</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Harga Pengiriman</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">Rp</span>
+                  <input
+                    type="number"
+                    name="total_price"
+                    value={editFormData.total_price}
+                    onChange={handleEditInputChange}
+                    className="w-full pl-12 pr-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                <button 
+                  type="button"
+                  onClick={() => setEditingPackage(null)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="flex-1 py-3 bg-[#24a173] text-white rounded-2xl font-bold hover:bg-[#1b8555] transition-all disabled:opacity-50"
+                >
+                  {isSavingEdit ? "Menyimpan..." : "Simpan Data"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

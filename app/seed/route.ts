@@ -14,6 +14,7 @@ async function seedUsers(sql: any) {
       email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
       phone VARCHAR(20),
+      kota_asal VARCHAR(100),
       role VARCHAR(20) DEFAULT 'Pelanggan',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -34,6 +35,27 @@ async function seedUsers(sql: any) {
       payment_method VARCHAR(100),
       total_price INT NOT NULL,
       status VARCHAR(50) DEFAULT 'Menunggu Konfirmasi',
+      tanggal_kirim DATE,
+      no_telepon VARCHAR(20),
+      jenis_barang VARCHAR(255),
+      jenis_kendaraan VARCHAR(100),
+      deskripsi TEXT,
+      status_barang VARCHAR(50) DEFAULT 'Aman',
+      status_transaksi VARCHAR(50) DEFAULT 'Belum Lunas',
+      plat_kendaraan VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  await sql`DROP TABLE IF EXISTS vehicles CASCADE`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS vehicles (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      nama_kendaraan VARCHAR(255) NOT NULL,
+      jenis_kendaraan VARCHAR(100) NOT NULL,
+      kode_kendaraan VARCHAR(50) NOT NULL,
+      kapasitas_muatan FLOAT NOT NULL,
+      status_kendaraan VARCHAR(50) DEFAULT 'Tersedia',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;

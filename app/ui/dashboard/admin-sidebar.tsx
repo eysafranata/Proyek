@@ -40,6 +40,7 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     { name: 'Dashboard Admin', href: '/dashboard-admin', icon: Squares2X2Icon },
     { name: 'Tambah Paket', href: '/dashboard-admin/add-package', icon: CubeIcon },
     { name: 'Kelola Paket', href: '/dashboard-admin/packages', icon: TruckIcon },
+    { name: 'Kendaraan', href: '/dashboard-admin/vehicles', icon: TruckIcon },
     { name: 'Kelola User', href: '/dashboard-admin/users', icon: UsersIcon },
     { name: 'Laporan', href: '/dashboard-admin/laporan-kinerja', icon: ChartBarIcon },
     { name: 'Keluhan', href: '/dashboard-admin/complaints', icon: ExclamationCircleIcon },

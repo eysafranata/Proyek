@@ -238,7 +238,11 @@ function LacakPaketContent() {
                   </div>
                   <div className="pt-1.5">
                     <h3 className="font-bold text-[#1db372] text-[15px] md:text-[17px]">Sedang Diantar</h3>
-                    <p className="text-gray-600 text-xs md:text-sm mt-0.5 font-medium">Kurir: Budi Sudarsono sedang menuju alamat Anda</p>
+                    <p className="text-gray-600 text-xs md:text-sm mt-0.5 font-medium">
+                      {selectedPackage && selectedPackage.plat_kendaraan 
+                        ? `Kurir sedang menuju alamat Anda menggunakan ${selectedPackage.jenis_kendaraan || 'kendaraan'} (Plat: ${selectedPackage.plat_kendaraan})` 
+                        : 'Kurir: Budi Sudarsono sedang menuju alamat Anda'}
+                    </p>
                     <p className="text-[10px] md:text-xs text-gray-400 font-bold tracking-widest mt-2 uppercase">12 OKT 2026 • 10:45</p>
                   </div>
                 </div>

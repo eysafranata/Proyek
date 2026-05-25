@@ -69,6 +69,7 @@ export async function registerUser(formData: FormData) {
   const email = formData.get('email') as string;
   const phone = formData.get('phone') as string;
   const password = formData.get('password') as string;
+  const kota_asal = formData.get('kota_asal') as string;
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -79,8 +80,8 @@ export async function registerUser(formData: FormData) {
     }
 
     await sql`
-      INSERT INTO users (name, email, password, phone, role)
-      VALUES (${name}, ${email}, ${hashedPassword}, ${phone}, 'Pelanggan')
+      INSERT INTO users (name, email, password, phone, kota_asal, role)
+      VALUES (${name}, ${email}, ${hashedPassword}, ${phone}, ${kota_asal}, 'Pelanggan')
     `;
   } catch (error) {
     console.error('Registration error:', error);
@@ -95,11 +96,12 @@ export async function updateProfile(id: string, formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const phone = formData.get('phone') as string;
+  const kota_asal = formData.get('kota_asal') as string;
 
   try {
     await sql`
       UPDATE users
-      SET name = ${name}, email = ${email}, phone = ${phone}
+      SET name = ${name}, email = ${email}, phone = ${phone}, kota_asal = ${kota_asal}
       WHERE id = ${id}
     `;
   } catch (error) {
@@ -215,7 +217,7 @@ export async function getCurrentUser() {
 
   try {
     const users = await sql`
-      SELECT id, name, email, role, phone FROM users WHERE id = ${userId}
+      SELECT id, name, email, role, phone, kota_asal FROM users WHERE id = ${userId}
     `;
     return users.length > 0 ? users[0] : null;
   } catch (error) {
@@ -232,7 +234,14 @@ export async function createPackage(formData: FormData) {
   const type = formData.get('type') as string;
   const payment_method = formData.get('payment_method') as string;
 
-  if (!sender_name || !receiver_name || !origin || !destination || !weight) {
+  const tanggal_kirim = formData.get('tanggal_kirim') as string;
+  const no_telepon = formData.get('no_telepon') as string;
+  const jenis_barang = formData.get('jenis_barang') as string;
+  const jenis_kendaraan = formData.get('jenis_kendaraan') as string;
+  const plat_kendaraan = formData.get('plat_kendaraan') as string;
+  const deskripsi = formData.get('deskripsi') as string;
+
+  if (!sender_name || !receiver_name || !origin || !destination || !weight || !tanggal_kirim || !no_telepon || !jenis_barang || !jenis_kendaraan || !deskripsi) {
     return { error: 'Mohon lengkapi semua data!' };
   }
 
@@ -250,12 +259,12 @@ export async function createPackage(formData: FormData) {
 
   // Generate Resi otomatis CKL + 10 digit angka
   const resi = `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-  const total_price = weight * 10000;
+  const total_price = parseInt(formData.get('total_price') as string) || 0;
 
   try {
     const result = await sql`
-      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price, user_id)
-      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price}, ${user_id})
+      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price, user_id, tanggal_kirim, no_telepon, jenis_barang, jenis_kendaraan, plat_kendaraan, deskripsi)
+      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price}, ${user_id}, ${tanggal_kirim}, ${no_telepon}, ${jenis_barang}, ${jenis_kendaraan}, ${plat_kendaraan}, ${deskripsi})
       RETURNING *
     `;
     
@@ -303,6 +312,7 @@ export async function fetchAllPackages(query: string = '', statusFilter: string 
           resi ILIKE ${searchVal} OR
           sender_name ILIKE ${searchVal} OR
           receiver_name ILIKE ${searchVal} OR
+          jenis_barang ILIKE ${searchVal} OR
           origin ILIKE ${searchVal} OR
           destination ILIKE ${searchVal}
         ORDER BY created_at DESC
@@ -315,6 +325,7 @@ export async function fetchAllPackages(query: string = '', statusFilter: string 
             resi ILIKE ${searchVal} OR
             sender_name ILIKE ${searchVal} OR
             receiver_name ILIKE ${searchVal} OR
+            jenis_barang ILIKE ${searchVal} OR
             origin ILIKE ${searchVal} OR
             destination ILIKE ${searchVal}
           )
@@ -666,3 +677,116 @@ export async function resetPassword(userId: string, formData: FormData) {
   }
 }
 
+export async function updatePackageDetails(id: string, formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return { error: 'Unauthorized' };
+
+  const status = formData.get('status') as string;
+  const status_barang = formData.get('status_barang') as string;
+  const status_transaksi = formData.get('status_transaksi') as string;
+  const plat_kendaraan = formData.get('plat_kendaraan') as string;
+  const total_price = parseInt(formData.get('total_price') as string);
+
+  try {
+    await sql`
+      UPDATE packages 
+      SET status = ${status}, status_barang = ${status_barang}, status_transaksi = ${status_transaksi}, plat_kendaraan = ${plat_kendaraan}, total_price = ${total_price} 
+      WHERE id = ${id}
+    `;
+    revalidatePath('/dashboard-admin/packages');
+    revalidatePath('/dashboard-admin/laporan-kinerja');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal memperbarui data paket.' };
+  }
+}
+
+export async function fetchVehicles() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return [];
+
+  try {
+    const vehicles = await sql`SELECT * FROM vehicles ORDER BY created_at DESC`;
+    return vehicles.map(v => ({ ...v, created_at: v.created_at ? v.created_at.toISOString() : null }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
+export async function createVehicle(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return { error: 'Unauthorized' };
+
+  const nama_kendaraan = formData.get('nama_kendaraan') as string;
+  const jenis_kendaraan = formData.get('jenis_kendaraan') as string;
+  const kode_kendaraan = formData.get('kode_kendaraan') as string;
+  const kapasitas_muatan = parseFloat(formData.get('kapasitas_muatan') as string);
+  const status_kendaraan = formData.get('status_kendaraan') as string;
+
+  try {
+    await sql`
+      INSERT INTO vehicles (nama_kendaraan, jenis_kendaraan, kode_kendaraan, kapasitas_muatan, status_kendaraan)
+      VALUES (${nama_kendaraan}, ${jenis_kendaraan}, ${kode_kendaraan}, ${kapasitas_muatan}, ${status_kendaraan})
+    `;
+    revalidatePath('/dashboard-admin/vehicles');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal menambahkan kendaraan.' };
+  }
+}
+
+export async function updateVehicle(id: string, formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return { error: 'Unauthorized' };
+
+  const nama_kendaraan = formData.get('nama_kendaraan') as string;
+  const jenis_kendaraan = formData.get('jenis_kendaraan') as string;
+  const kode_kendaraan = formData.get('kode_kendaraan') as string;
+  const kapasitas_muatan = parseFloat(formData.get('kapasitas_muatan') as string);
+  const status_kendaraan = formData.get('status_kendaraan') as string;
+
+  try {
+    await sql`
+      UPDATE vehicles 
+      SET nama_kendaraan = ${nama_kendaraan}, jenis_kendaraan = ${jenis_kendaraan}, kode_kendaraan = ${kode_kendaraan}, kapasitas_muatan = ${kapasitas_muatan}, status_kendaraan = ${status_kendaraan}
+      WHERE id = ${id}
+    `;
+    revalidatePath('/dashboard-admin/vehicles');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal mengubah kendaraan.' };
+  }
+}
+
+export async function deleteVehicle(id: string) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return { error: 'Unauthorized' };
+
+  try {
+    await sql`DELETE FROM vehicles WHERE id = ${id}`;
+    revalidatePath('/dashboard-admin/vehicles');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal menghapus kendaraan.' };
+  }
+}
+
+export async function deletePackage(id: string) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return { error: 'Unauthorized' };
+
+  try {
+    await sql`DELETE FROM packages WHERE id = ${id}`;
+    revalidatePath('/dashboard-admin/packages');
+    revalidatePath('/dashboard-admin/laporan-kinerja');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal menghapus data paket.' };
+  }
+}

@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [kotaAsal, setKotaAsal] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +26,7 @@ export default function RegisterPage() {
     name?: string;
     email?: string;
     phone?: string;
+    kota_asal?: string;
     password?: string;
   }>({});
 
@@ -47,6 +49,11 @@ export default function RegisterPage() {
       isValid = false;
     }
 
+    if (!kotaAsal.trim()) {
+      newErrors.kota_asal = "Kota asal harus diisi";
+      isValid = false;
+    }
+
     if (!password || password.length < 8 || password !== confirmPassword) {
       newErrors.password = "Kata sandi minimal 8 karakter dan harus cocok";
       isValid = false;
@@ -65,6 +72,7 @@ export default function RegisterPage() {
     formData.append('name', name);
     formData.append('email', email);
     formData.append('phone', phone);
+    formData.append('kota_asal', kotaAsal);
     formData.append('password', password);
 
     try {
@@ -182,6 +190,31 @@ export default function RegisterPage() {
               />
               {errors.phone && (
                 <p className="text-red-700 text-xs font-semibold mt-1.5 ml-1">{errors.phone}</p>
+              )}
+            </div>
+
+            {/* Kota Asal Field */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                Kota Asal <span className="text-red-700">*</span>
+              </label>
+              <input
+                type="text"
+                name="kota_asal"
+                placeholder="Contoh: Jakarta"
+                value={kotaAsal}
+                onChange={(e) => {
+                  setKotaAsal(e.target.value);
+                  setErrors({ ...errors, kota_asal: undefined });
+                }}
+                className={`w-full px-4 py-3 rounded-2xl outline-none border-2 ring-0 transition-colors ${
+                  errors.kota_asal 
+                    ? 'border-red-500 focus:border-red-500 text-red-900 placeholder-red-300' 
+                    : 'border-transparent focus:border-white/50 text-gray-800'
+                } bg-[#f8fcf9] shadow-sm`}
+              />
+              {errors.kota_asal && (
+                <p className="text-red-700 text-xs font-semibold mt-1.5 ml-1">{errors.kota_asal}</p>
               )}
             </div>
 

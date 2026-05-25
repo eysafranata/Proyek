@@ -14,7 +14,8 @@ import {
   IdentificationIcon,
   XMarkIcon,
   CheckCircleIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 import Sidebar from '@/components/Sidebar';
 import { updateProfile, changePassword, getCurrentUser } from '@/app/lib/actions';
@@ -33,6 +34,7 @@ export default function ProfilePage() {
     name: 'Loading...', 
     email: '', 
     phone: '', 
+    kota_asal: '',
     role: ''
   });
 
@@ -69,6 +71,7 @@ export default function ProfilePage() {
     formData.append('name', editData.name);
     formData.append('email', editData.email);
     formData.append('phone', editData.phone);
+    formData.append('kota_asal', editData.kota_asal);
     
     const res = await updateProfile(user.id, formData);
     if (!res?.message.includes('Error')) {
@@ -244,6 +247,25 @@ export default function ProfilePage() {
               ) : (
                 <div className="bg-[#e6fce5] rounded-full px-6 py-4 font-bold text-[#0c5132]">
                   {user.phone}
+                </div>
+              )}
+            </div>
+
+            {/* Kota Asal */}
+            <div>
+              <label className="flex items-center gap-2 text-xs font-bold text-[#1db372] mb-2 uppercase tracking-widest">
+                <MapPinIcon className="w-4 h-4" /> Kota Asal
+              </label>
+              {isEditing ? (
+                <input 
+                  type="text" 
+                  value={editData.kota_asal || ''}
+                  onChange={(e) => setEditData({...editData, kota_asal: e.target.value})}
+                  className="w-full bg-[#f4fcf7] border-2 border-emerald-100/50 rounded-2xl px-6 py-4 outline-none focus:border-emerald-400 transition-colors font-bold text-gray-800"
+                />
+              ) : (
+                <div className="bg-[#e6fce5] rounded-full px-6 py-4 font-bold text-[#0c5132]">
+                  {user.kota_asal || '-'}
                 </div>
               )}
             </div>

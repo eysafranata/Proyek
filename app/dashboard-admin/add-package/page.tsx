@@ -15,7 +15,7 @@ import {
   Bars3Icon,
   CubeIcon
 } from '@heroicons/react/24/outline';
-import { createPackage } from '@/app/lib/actions';
+import { createPackage, fetchVehicles } from '@/app/lib/actions';
 import AdminSidebar from '@/app/ui/dashboard/admin-sidebar';
 
 const poppins = Poppins({
@@ -33,6 +33,13 @@ export default function AddPackagePage() {
     weight: '',
     type: 'Reguler',
     payment_method: 'Tunai',
+    tanggal_kirim: '',
+    no_telepon: '',
+    jenis_barang: '',
+    jenis_kendaraan: '',
+    plat_kendaraan: '',
+    deskripsi: '',
+    total_price: '',
   });
 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
@@ -40,12 +47,55 @@ export default function AddPackagePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<any | null>(null);
 
-  const pricePerKg = 10000;
-  const totalPrice = parseFloat(formData.weight) ? parseFloat(formData.weight) * pricePerKg : 0;
+  let currentPricePerKg = 15000;
+  if (formData.type === 'Express') currentPricePerKg = 25000;
+  else if (formData.type === 'Cargo') currentPricePerKg = 50000;
+  const [vehicles, setVehicles] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadVehicles() {
+      const v = await fetchVehicles();
+      setVehicles(v);
+    }
+    loadVehicles();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'kendaraan_select') {
+      const selected = vehicles.find(v => v.kode_kendaraan === value);
+      if (selected) {
+        setFormData(prev => ({
+          ...prev,
+          jenis_kendaraan: selected.jenis_kendaraan,
+          plat_kendaraan: selected.kode_kendaraan
+        }));
+      }
+      if (errors.jenis_kendaraan) {
+        setErrors(prev => ({ ...prev, jenis_kendaraan: false }));
+      }
+      return;
+    }
+
+    let updatedData = { ...formData, [name]: value };
+    
+    if (name === 'weight' || name === 'type') {
+      const weightNum = parseFloat(name === 'weight' ? value : formData.weight);
+      const currentType = name === 'type' ? value : formData.type;
+      
+      if (!isNaN(weightNum)) {
+        let pricePerKg = 15000; // Reguler
+        if (currentType === 'Express') pricePerKg = 25000;
+        else if (currentType === 'Cargo') pricePerKg = 50000;
+        
+        updatedData.total_price = (weightNum * pricePerKg).toString();
+      } else {
+        updatedData.total_price = '';
+      }
+    }
+
+    setFormData(updatedData);
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: false }));
     }
@@ -60,6 +110,11 @@ export default function AddPackagePage() {
     if (!formData.origin) newErrors.origin = true;
     if (!formData.destination) newErrors.destination = true;
     if (!formData.weight || parseFloat(formData.weight) <= 0) newErrors.weight = true;
+    if (!formData.tanggal_kirim) newErrors.tanggal_kirim = true;
+    if (!formData.no_telepon) newErrors.no_telepon = true;
+    if (!formData.jenis_barang) newErrors.jenis_barang = true;
+    if (!formData.jenis_kendaraan) newErrors.jenis_kendaraan = true;
+    if (!formData.deskripsi) newErrors.deskripsi = true;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -157,6 +212,18 @@ export default function AddPackagePage() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Tanggal Kirim</label>
+                <input 
+                  type="date" 
+                  name="tanggal_kirim"
+                  value={formData.tanggal_kirim}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.tanggal_kirim ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                />
+              </div>
+
+              {/* Row 2 */}
+              <div>
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Nama Pengirim</label>
                 <input 
                   type="text" 
@@ -167,8 +234,6 @@ export default function AddPackagePage() {
                   className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.sender_name ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
               </div>
-
-              {/* Row 2 */}
               <div>
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Nama Penerima</label>
                 <input 
@@ -180,6 +245,32 @@ export default function AddPackagePage() {
                   className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.receiver_name ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
               </div>
+
+              {/* Row 3 */}
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">No Telepon</label>
+                <input 
+                  type="text" 
+                  name="no_telepon"
+                  placeholder="Contoh: 081234567890"
+                  value={formData.no_telepon}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.no_telepon ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Jenis Barang</label>
+                <input 
+                  type="text" 
+                  name="jenis_barang"
+                  placeholder="Contoh: Elektronik, Pakaian"
+                  value={formData.jenis_barang}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.jenis_barang ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                />
+              </div>
+
+              {/* Row 4 */}
               <div>
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Kota Asal</label>
                 <input 
@@ -191,8 +282,6 @@ export default function AddPackagePage() {
                   className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.origin ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
               </div>
-
-              {/* Row 3 */}
               <div>
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Kota Tujuan</label>
                 <input 
@@ -204,6 +293,8 @@ export default function AddPackagePage() {
                   className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.destination ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
               </div>
+
+              {/* Row 5 */}
               <div>
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Berat (Kg)</label>
                 <div className="relative">
@@ -219,19 +310,49 @@ export default function AddPackagePage() {
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Kg</div>
                 </div>
               </div>
-
-              {/* Row 4 */}
               <div>
-                <label className="block text-sm font-bold text-[#0c5132] mb-2">Tipe Paket</label>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Jenis Pengiriman</label>
                 <select 
                   name="type"
                   value={formData.type}
                   onChange={handleInputChange}
                   className="w-full px-5 py-4 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:ring-4 focus:ring-emerald-50 outline-none cursor-pointer"
                 >
-                  <option value="Reguler">Reguler</option>
-                  <option value="Ekspres">Ekspres</option>
-                  <option value="Kargo">Kargo</option>
+                  <option value="Reguler">Reguler (Rp 15.000/kg)</option>
+                  <option value="Express">Express (Rp 25.000/kg)</option>
+                  <option value="Cargo">Cargo (Rp 50.000/kg)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Harga Total (Bisa di-edit)</label>
+                <div className="relative">
+                  <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-gray-400">Rp</span>
+                  <input 
+                    type="number" 
+                    name="total_price"
+                    value={formData.total_price || ''}
+                    onChange={handleInputChange}
+                    className="w-full pl-12 pr-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none border-[#e0e7e3] focus:border-[#24a173]"
+                  />
+                </div>
+              </div>
+
+              {/* Row 6 */}
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Pilih Kendaraan</label>
+                <select 
+                  name="kendaraan_select"
+                  value={formData.plat_kendaraan || ''}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none cursor-pointer ${errors.jenis_kendaraan ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                >
+                  <option value="" disabled>Pilih Kendaraan</option>
+                  {vehicles.filter(v => v.status_kendaraan === 'Tersedia').map(v => (
+                    <option key={v.id} value={v.kode_kendaraan}>
+                      {v.nama_kendaraan} - {v.kode_kendaraan} ({v.jenis_kendaraan})
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -246,10 +367,27 @@ export default function AddPackagePage() {
                   <option value="QRIS">QRIS</option>
                 </select>
               </div>
+
+              {/* Row 7 */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Deskripsi/Catatan Barang</label>
+                <textarea 
+                  name="deskripsi"
+                  placeholder="Contoh: Barang mudah pecah, harap berhati-hati"
+                  value={formData.deskripsi}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setFormData(prev => ({ ...prev, [name]: value }));
+                    if (errors[name]) setErrors(prev => ({ ...prev, [name]: false }));
+                  }}
+                  rows={3}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none resize-none ${errors.deskripsi ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                ></textarea>
+              </div>
             </div>
 
             {/* Pricing Breakdown Box */}
-            {totalPrice > 0 && (
+            {parseInt(formData.total_price || '0') > 0 && (
               <div className="mt-12 md:mt-16 bg-[#e6f7ec] rounded-[32px] p-8 md:p-10 border border-emerald-100 animate-in fade-in slide-in-from-bottom duration-500">
                  <div className="flex items-center gap-3 mb-6">
                     <BanknotesIcon className="w-6 h-6 text-[#24a173]" />
@@ -262,7 +400,7 @@ export default function AddPackagePage() {
                     </div>
                     <div className="flex justify-between items-center text-sm md:text-base">
                       <span>Tarif per Kg:</span>
-                      <span className="font-bold">Rp {pricePerKg.toLocaleString('id-ID')}</span>
+                      <span className="font-bold">Rp {currentPricePerKg.toLocaleString('id-ID')}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm md:text-base">
                       <span>Berat:</span>
@@ -270,9 +408,9 @@ export default function AddPackagePage() {
                     </div>
                  </div>
                  <div className="flex justify-between items-center">
-                    <span className="font-extrabold text-[#0c5132] text-lg">Total Harga:</span>
-                    <span className="font-extrabold text-[#24a173] text-2xl md:text-3xl">Rp {totalPrice.toLocaleString('id-ID')}</span>
-                 </div>
+                    <p className="text-gray-500 font-medium">Total Harga</p>
+                    <p className="font-extrabold text-[#0c5132] text-xl">Rp {parseInt(formData.total_price || '0').toLocaleString('id-ID')}</p>
+                  </div>
 
                  {/* QRIS Scan Section */}
                  {formData.payment_method === 'QRIS' && (
@@ -392,6 +530,13 @@ export default function AddPackagePage() {
                           weight: '',
                           type: 'Reguler',
                           payment_method: 'Tunai',
+                          tanggal_kirim: '',
+                          no_telepon: '',
+                          jenis_barang: '',
+                          jenis_kendaraan: '',
+                          plat_kendaraan: '',
+                          deskripsi: '',
+                          total_price: '',
                         });
                     }}
                     className="w-full bg-[#f4fcf7] text-[#24a173] py-4 rounded-2xl font-bold hover:bg-emerald-50 transition-all border border-[#24a173]/10"
