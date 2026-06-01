@@ -46,6 +46,7 @@ export default function AddPackagePage() {
   const [showErrorBanner, setShowErrorBanner] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<any | null>(null);
+  const [resi, setResi] = useState('');
 
   let currentPricePerKg = 15000;
   if (formData.type === 'Express') currentPricePerKg = 25000;
@@ -58,6 +59,10 @@ export default function AddPackagePage() {
       setVehicles(v);
     }
     loadVehicles();
+
+    // Generate resi otomatis saat halaman dibuka
+    const generatedResi = `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    setResi(generatedResi);
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -135,6 +140,7 @@ export default function AddPackagePage() {
     setIsSubmitting(true);
     const data = new FormData();
     Object.entries(formData).forEach(([key, value]) => data.append(key, value));
+    data.append('resi', resi);
 
     const result = await createPackage(data);
     setIsSubmitting(false);
@@ -206,9 +212,9 @@ export default function AddPackagePage() {
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Nomor Resi</label>
                 <input 
                   type="text" 
-                  placeholder="Otomatis digenerate" 
+                  value={resi}
                   disabled
-                  className="w-full px-5 py-4 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-gray-400 cursor-not-allowed"
+                  className="w-full px-5 py-4 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-extrabold text-[#0c5132] cursor-not-allowed shadow-inner"
                 />
               </div>
               <div>
@@ -455,7 +461,7 @@ export default function AddPackagePage() {
                     <CheckCircleIcon className="w-10 h-10 stroke-[2.5]" />
                  </div>
                  <h3 className="text-2xl font-extrabold text-[#0c5132] leading-tight">Pembayaran Berhasil</h3>
-                 <p className="text-gray-400 text-xs font-bold mt-1 uppercase tracking-widest">Transaction ID: {successData.resi}</p>
+                 <p className="text-gray-400 text-xs font-bold mt-1 uppercase tracking-widest">ID Transaksi: {successData.resi}</p>
               </div>
 
               <div className="bg-[#f8faf9] rounded-3xl p-6 mb-8 border border-gray-50 flex flex-col gap-5">
@@ -517,7 +523,7 @@ export default function AddPackagePage() {
                     className="w-full bg-[#24a173] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#1b8555] transition-all shadow-sm"
                  >
                     <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
-                    Download Struk
+                    Unduh Struk
                  </button>
                  <button 
                     onClick={() => {
@@ -538,6 +544,9 @@ export default function AddPackagePage() {
                           deskripsi: '',
                           total_price: '',
                         });
+                        // Generate resi baru untuk pengiriman berikutnya
+                        const newResi = `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+                        setResi(newResi);
                     }}
                     className="w-full bg-[#f4fcf7] text-[#24a173] py-4 rounded-2xl font-bold hover:bg-emerald-50 transition-all border border-[#24a173]/10"
                  >

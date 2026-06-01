@@ -257,8 +257,8 @@ export async function createPackage(formData: FormData) {
   
   const user_id = userRows[0].id;
 
-  // Generate Resi otomatis CKL + 10 digit angka
-  const resi = `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+  // Gunakan resi kustom jika dikirim dari klien, jika tidak generate resi otomatis CKL + 10 digit angka
+  const resi = (formData.get('resi') as string) || `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
   const total_price = parseInt(formData.get('total_price') as string) || 0;
 
   try {
@@ -314,7 +314,8 @@ export async function fetchAllPackages(query: string = '', statusFilter: string 
           receiver_name ILIKE ${searchVal} OR
           jenis_barang ILIKE ${searchVal} OR
           origin ILIKE ${searchVal} OR
-          destination ILIKE ${searchVal}
+          destination ILIKE ${searchVal} OR
+          no_telepon ILIKE ${searchVal}
         ORDER BY created_at DESC
       `;
     } else {
@@ -327,7 +328,8 @@ export async function fetchAllPackages(query: string = '', statusFilter: string 
             receiver_name ILIKE ${searchVal} OR
             jenis_barang ILIKE ${searchVal} OR
             origin ILIKE ${searchVal} OR
-            destination ILIKE ${searchVal}
+            destination ILIKE ${searchVal} OR
+            no_telepon ILIKE ${searchVal}
           )
         ORDER BY created_at DESC
       `;
@@ -548,6 +550,13 @@ export async function fetchLaporanStats() {
   }
 }
 
+function toLocalYYYYMMDD(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const date = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${date}`;
+}
+
 export async function fetchDailyRevenue(days: number = 7) {
   try {
     const rows = await sql`
@@ -566,9 +575,9 @@ export async function fetchDailyRevenue(days: number = 7) {
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const dateStr = toLocalYYYYMMDD(d); // "YYYY-MM-DD"
       const found = rows.find((r: any) => {
-        const rowDate = new Date(r.day).toISOString().slice(0, 10);
+        const rowDate = toLocalYYYYMMDD(new Date(r.day));
         return rowDate === dateStr;
       });
       result.push({ date: dateStr, revenue: found ? Number(found.revenue) : 0 });
@@ -597,9 +606,9 @@ export async function fetchDailyPackageVolume(days: number = 7) {
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = toLocalYYYYMMDD(d);
       const found = rows.find((r: any) => {
-        const rowDate = new Date(r.day).toISOString().slice(0, 10);
+        const rowDate = toLocalYYYYMMDD(new Date(r.day));
         return rowDate === dateStr;
       });
       result.push({ date: dateStr, count: found ? Number(found.count) : 0 });
@@ -628,9 +637,9 @@ export async function fetchDailyUserRegistration(days: number = 7) {
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = toLocalYYYYMMDD(d);
       const found = rows.find((r: any) => {
-        const rowDate = new Date(r.day).toISOString().slice(0, 10);
+        const rowDate = toLocalYYYYMMDD(new Date(r.day));
         return rowDate === dateStr;
       });
       result.push({ date: dateStr, count: found ? Number(found.count) : 0 });
@@ -788,5 +797,24 @@ export async function deletePackage(id: string) {
   } catch (error) {
     console.error('Database Error:', error);
     return { error: 'Gagal menghapus data paket.' };
+  }
+}
+
+export async function replyToComplaint(id: string, reply: string) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== 'Admin') return { error: 'Unauthorized' };
+
+  try {
+    await sql`
+      UPDATE complaints
+      SET admin_reply = ${reply}, status = 'Selesai', replied_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+    `;
+    revalidatePath('/dashboard/feedback');
+    revalidatePath('/dashboard-admin/complaints');
+    return { success: true };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return { error: 'Gagal mengirim balasan keluhan.' };
   }
 }

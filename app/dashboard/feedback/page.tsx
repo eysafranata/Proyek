@@ -289,6 +289,22 @@ export default function FeedbackPage() {
                         <h4 className="font-extrabold text-[#0c5132] text-sm group-hover:text-[#24a173] transition-colors">{c.title}</h4>
                         <p className="text-gray-500 text-xs md:text-sm mt-1.5 font-medium leading-relaxed whitespace-pre-wrap">{c.message}</p>
                       </div>
+
+                      {c.admin_reply && (
+                        <div className="mt-4 p-4 bg-emerald-50/70 border border-emerald-100/80 rounded-2xl text-xs md:text-sm shadow-sm relative overflow-hidden animate-in slide-in-from-top duration-300">
+                          <div className="absolute right-3 top-3 bg-emerald-600/10 text-emerald-700 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
+                            Admin
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[#0c5132] font-black mb-1.5">
+                            <ChatBubbleBottomCenterTextIcon className="w-4 h-4 text-emerald-600" />
+                            <span>Tanggapan Resmi Admin:</span>
+                          </div>
+                          <p className="text-emerald-800 font-medium whitespace-pre-wrap leading-relaxed">{c.admin_reply}</p>
+                          {c.replied_at && (
+                            <span className="text-[10px] text-emerald-600/70 font-bold block mt-2 text-right">Dibalas pada {formatDate(c.replied_at)}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

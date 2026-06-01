@@ -15,7 +15,7 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import AdminSidebar from '@/app/ui/dashboard/admin-sidebar';
-import { fetchAllComplaints, updateComplaintStatus } from '@/app/lib/actions';
+import { fetchAllComplaints, updateComplaintStatus, replyToComplaint } from '@/app/lib/actions';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -30,6 +30,9 @@ export default function AdminComplaintsPage() {
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [replyingComplaint, setReplyingComplaint] = useState<any | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
   // Stats calculation
   const [stats, setStats] = useState({
@@ -136,7 +139,7 @@ export default function AdminComplaintsPage() {
             className="inline-flex items-center justify-center gap-2 bg-[#24a173]/10 hover:bg-[#24a173]/20 text-[#0c5132] px-5 py-3 rounded-2xl font-bold transition-all disabled:opacity-50"
           >
             <ArrowPathIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh Data
+            Segarkan Data
           </button>
         </div>
 
@@ -296,12 +299,25 @@ export default function AdminComplaintsPage() {
                         <div className="flex flex-col gap-1">
                           <h5 className="font-extrabold text-sm text-[#0c5132] group-hover:text-[#24a173] transition-colors">{c.title}</h5>
                           <p className="text-gray-500 text-xs md:text-sm font-medium leading-relaxed whitespace-pre-wrap mt-0.5">{c.message}</p>
+                          
+                          {c.admin_reply && (
+                            <div className="mt-2.5 p-3 bg-emerald-50/70 border border-emerald-100/50 rounded-2xl text-xs">
+                              <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold mb-1">
+                                <ChatBubbleBottomCenterTextIcon className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2} />
+                                <span>Balasan Anda:</span>
+                              </div>
+                              <p className="text-emerald-700 font-medium whitespace-pre-wrap leading-relaxed">{c.admin_reply}</p>
+                              {c.replied_at && (
+                                <span className="text-[9px] text-emerald-600/70 font-semibold block mt-1">Dibalas pada {formatDate(c.replied_at)}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
 
                       {/* Column 4: Status Selector */}
                       <td className="px-6 py-5 align-top whitespace-nowrap">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col gap-2">
                           <div className="relative">
                             {loadingIds[c.id] ? (
                               <div className="w-5 h-5 border-3 border-[#24a173]/30 border-t-[#24a173] rounded-full animate-spin"></div>
@@ -309,7 +325,7 @@ export default function AdminComplaintsPage() {
                               <select
                                 value={c.status}
                                 onChange={(e) => handleStatusChange(c.id, e.target.value)}
-                                className={`px-3 py-2 rounded-xl text-xs font-black outline-none border transition-all cursor-pointer ${
+                                className={`px-3 py-2 rounded-xl text-xs font-black outline-none border transition-all cursor-pointer w-full ${
                                   c.status === 'Pending' 
                                     ? 'bg-slate-100 text-slate-600 border-slate-200 focus:ring-slate-100'
                                     : c.status === 'Diproses'
@@ -323,6 +339,16 @@ export default function AdminComplaintsPage() {
                               </select>
                             )}
                           </div>
+                          <button
+                            onClick={() => {
+                              setReplyingComplaint(c);
+                              setReplyText(c.admin_reply || '');
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#24a173] hover:bg-[#1b8555] text-white rounded-xl text-xs font-bold transition-all active:scale-[0.97] shadow-sm w-full"
+                          >
+                            <ChatBubbleBottomCenterTextIcon className="w-3.5 h-3.5" />
+                            <span>{c.admin_reply ? 'Edit Balasan' : 'Balas'}</span>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -333,6 +359,98 @@ export default function AdminComplaintsPage() {
           )}
         </div>
       </div>
+
+      {/* Reply Modal */}
+      {replyingComplaint && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 py-10 bg-[#0c5132]/20 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl relative overflow-hidden flex flex-col p-8 animate-in zoom-in-95 duration-300">
+            {/* Close Button */}
+            <button 
+              onClick={() => setReplyingComplaint(null)}
+              className="absolute top-5 right-5 p-2 bg-gray-50 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h3 className="text-2xl font-extrabold text-[#0c5132] mb-5 flex items-center gap-2">
+              <ChatBubbleBottomCenterTextIcon className="w-6 h-6 text-[#24a173]" />
+              Kirim Tanggapan Resmi 📣
+            </h3>
+
+            {/* Complaint Summary */}
+            <div className="bg-[#f8faf9] rounded-2xl p-5 border border-gray-100 mb-6 max-h-48 overflow-y-auto">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold text-[#24a173] uppercase bg-[#e6fce5] px-2 py-0.5 rounded">
+                  {replyingComplaint.type}
+                </span>
+                <span className="text-xs font-bold text-gray-400">
+                  Dari: {replyingComplaint.name} ({replyingComplaint.email})
+                </span>
+              </div>
+              <h4 className="font-extrabold text-sm text-[#0c5132] mb-1">{replyingComplaint.title}</h4>
+              <p className="text-gray-500 text-xs md:text-sm font-medium leading-relaxed whitespace-pre-wrap">{replyingComplaint.message}</p>
+            </div>
+
+            {/* Reply Input Form */}
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!replyText.trim()) return;
+
+                setIsSubmittingReply(true);
+                const res = await replyToComplaint(replyingComplaint.id, replyText);
+                setIsSubmittingReply(false);
+
+                if (res.success) {
+                  setReplyingComplaint(null);
+                  setReplyText('');
+                  loadComplaints();
+                } else {
+                  alert(res.error || 'Gagal mengirim balasan.');
+                }
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-[#0c5132] mb-2 uppercase tracking-wider">
+                  Tulis Tanggapan / Solusi <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={5}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Ketik tanggapan resmi, penjelasan, atau solusi untuk pelanggan di sini..."
+                  className="w-full px-4 py-3.5 bg-[#f8faf9] border-2 border-transparent focus:border-[#24a173] rounded-2xl font-medium outline-none transition-all placeholder-gray-400 text-sm text-[#0c5132] resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-2">
+                <button 
+                  type="button"
+                  onClick={() => setReplyingComplaint(null)}
+                  className="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-bold transition-all text-sm"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmittingReply || !replyText.trim()}
+                  className="flex-1 py-3.5 bg-[#24a173] hover:bg-[#1b8555] text-white rounded-2xl font-bold transition-all text-sm disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md"
+                >
+                  {isSubmittingReply ? (
+                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <span>Kirim Tanggapan</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

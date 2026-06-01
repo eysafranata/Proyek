@@ -65,6 +65,7 @@ export default function KelolaPaketPage() {
   const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [deletingPackage, setDeletingPackage] = useState<any | null>(null);
 
   const [editingPackage, setEditingPackage] = useState<any | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -158,9 +159,7 @@ export default function KelolaPaketPage() {
     }
   };
 
-  const handleDeletePackage = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus data paket ini?")) return;
-    
+  const confirmDeletePackage = async (id: string) => {
     setLoadingIds((prev) => ({ ...prev, [id]: true }));
     const result = await deletePackage(id);
     setLoadingIds((prev) => ({ ...prev, [id]: false }));
@@ -207,7 +206,7 @@ export default function KelolaPaketPage() {
           <div className="flex items-center gap-3">
             <button onClick={loadPackages} disabled={isRefreshing} className="inline-flex items-center gap-2 bg-[#24a173]/10 hover:bg-[#24a173]/20 text-[#0c5132] px-4 py-2.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50">
               <ArrowPathIcon className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
-              Refresh
+              Segarkan
             </button>
             <Link href="/dashboard-admin/add-package" className="inline-flex items-center gap-2 bg-[#24a173] text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-[#1b8555] transition-all shadow-sm">
               <CubeIcon className="w-4 h-4" /> Tambah Paket
@@ -245,7 +244,7 @@ export default function KelolaPaketPage() {
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Cari resi, pengirim, penerima, kota asal/tujuan..."
+              placeholder="Cari resi, pengirim, penerima, no telp, asal/tujuan..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-[#f4fcf7] border-2 border-transparent focus:border-[#24a173] rounded-2xl font-medium outline-none transition-all placeholder-gray-400 text-sm text-[#0c5132]"
@@ -386,7 +385,7 @@ export default function KelolaPaketPage() {
                               </button>
                             )}
                             <button
-                              onClick={() => handleDeletePackage(pkg.id)}
+                              onClick={() => setDeletingPackage(pkg)}
                               className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm w-full border border-red-100 mt-1"
                             >
                               <TrashIcon className="w-3.5 h-3.5" />
@@ -485,15 +484,15 @@ export default function KelolaPaketPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-[#0c5132] mb-2">Harga Pengiriman</label>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Harga Pengiriman (Tidak dapat diubah)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">Rp</span>
                   <input
                     type="number"
                     name="total_price"
                     value={editFormData.total_price}
-                    onChange={handleEditInputChange}
-                    className="w-full pl-12 pr-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                    disabled
+                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl font-bold text-gray-400 cursor-not-allowed outline-none"
                   />
                 </div>
               </div>
@@ -515,6 +514,43 @@ export default function KelolaPaketPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {deletingPackage && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+          <div 
+            className="absolute inset-0 bg-[#0c5132]/20 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setDeletingPackage(null)}
+          ></div>
+          <div className="bg-white rounded-[32px] w-full max-w-sm shadow-2xl relative z-10 overflow-hidden p-6 md:p-8 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-5 border border-red-100">
+              <TrashIcon className="w-8 h-8 animate-bounce" />
+            </div>
+            <h3 className="text-xl font-extrabold text-[#0c5132] mb-3">Konfirmasi Hapus</h3>
+            <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
+              Apakah Anda yakin ingin menghapus data paket dengan resi <span className="font-extrabold text-red-500">"{deletingPackage.resi}"</span> (Pengirim: {deletingPackage.sender_name})? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeletingPackage(null)}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-bold transition-all text-sm"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={async () => {
+                  const id = deletingPackage.id;
+                  setDeletingPackage(null);
+                  await confirmDeletePackage(id);
+                }}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all text-sm flex items-center justify-center gap-1.5"
+              >
+                Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}

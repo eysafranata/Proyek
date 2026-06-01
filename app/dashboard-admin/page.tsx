@@ -205,7 +205,7 @@ export default function DashboardAdmin() {
               </div>
               <span className="bg-[#e6fce5] text-[#24a173] text-[10px] md:text-xs font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm border border-emerald-50">
                 <span className="w-2 h-2 bg-[#24a173] rounded-full inline-block animate-pulse"></span>
-                Live
+                Aktif
               </span>
             </div>
             <div className="w-full h-[200px] md:h-[260px] relative">
@@ -235,7 +235,7 @@ export default function DashboardAdmin() {
             </div>
           </div>
 
-          {/* Chart 2: Pendaftaran Pngguna */}
+          {/* Chart 2: Pendaftaran Pengguna Baru */}
           <div className="bg-white rounded-[24px] md:rounded-[32px] p-6 md:p-8 shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ export default function DashboardAdmin() {
               </div>
               <span className="bg-[#eef4fc] text-[#4182FF] text-[10px] md:text-xs font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm border border-blue-50">
                 <span className="w-2 h-2 bg-[#4182FF] rounded-full inline-block animate-pulse"></span>
-                Live
+                Aktif
               </span>
             </div>
             <div className="w-full h-[200px] md:h-[260px] relative">

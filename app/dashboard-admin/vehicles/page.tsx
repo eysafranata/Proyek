@@ -39,6 +39,7 @@ export default function KendaraanPage() {
     status_kendaraan: "Tersedia",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingVehicle, setDeletingVehicle] = useState<any | null>(null);
 
   const loadVehicles = useCallback(async () => {
     setIsRefreshing(true);
@@ -111,8 +112,7 @@ export default function KendaraanPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus kendaraan ini?")) return;
+  const confirmDelete = async (id: string) => {
     const res = await deleteVehicle(id);
     if (res.success) {
       loadVehicles();
@@ -155,7 +155,7 @@ export default function KendaraanPage() {
           <div className="flex items-center gap-3">
             <button onClick={loadVehicles} disabled={isRefreshing} className="inline-flex items-center gap-2 bg-[#24a173]/10 hover:bg-[#24a173]/20 text-[#0c5132] px-4 py-2.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50">
               <ArrowPathIcon className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
-              Refresh
+              Segarkan
             </button>
             <button onClick={openAddModal} className="inline-flex items-center gap-2 bg-[#24a173] text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-[#1b8555] transition-all shadow-sm">
               <PlusIcon className="w-4 h-4" /> Tambah Kendaraan
@@ -208,7 +208,7 @@ export default function KendaraanPage() {
                           <button onClick={() => openEditModal(v)} className="p-2 text-[#24a173] hover:bg-emerald-50 rounded-xl transition-colors">
                             <PencilIcon className="w-5 h-5" />
                           </button>
-                          <button onClick={() => handleDelete(v.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                          <button onClick={() => setDeletingVehicle(v)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
                             <TrashIcon className="w-5 h-5" />
                           </button>
                         </div>
@@ -303,7 +303,7 @@ export default function KendaraanPage() {
                     <option value="Tersedia">Tersedia</option>
                     <option value="Diproses">Diproses</option>
                     <option value="Dalam Pengiriman">Dalam Pengiriman</option>
-                    <option value="Maintenance">Maintenance</option>
+                    <option value="Maintenance">Dalam Perbaikan</option>
                   </select>
                 </div>
               </div>
@@ -325,6 +325,43 @@ export default function KendaraanPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {deletingVehicle && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+          <div 
+            className="absolute inset-0 bg-[#0c5132]/20 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setDeletingVehicle(null)}
+          ></div>
+          <div className="bg-white rounded-[32px] w-full max-w-sm shadow-2xl relative z-10 overflow-hidden p-6 md:p-8 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-5 border border-red-100">
+              <TrashIcon className="w-8 h-8 animate-bounce" />
+            </div>
+            <h3 className="text-xl font-extrabold text-[#0c5132] mb-3">Konfirmasi Hapus</h3>
+            <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
+              Apakah Anda yakin ingin menghapus kendaraan <span className="font-extrabold text-red-500">"{deletingVehicle.nama_kendaraan} ({deletingVehicle.kode_kendaraan})"</span>? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeletingVehicle(null)}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-bold transition-all text-sm"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={async () => {
+                  const id = deletingVehicle.id;
+                  setDeletingVehicle(null);
+                  await confirmDelete(id);
+                }}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all text-sm flex items-center justify-center gap-1.5"
+              >
+                Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}

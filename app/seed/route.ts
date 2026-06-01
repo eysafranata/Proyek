@@ -71,6 +71,8 @@ async function seedUsers(sql: any) {
       title VARCHAR(255) NOT NULL,
       message TEXT NOT NULL,
       status VARCHAR(50) DEFAULT 'Pending',
+      admin_reply TEXT,
+      replied_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;

@@ -6,14 +6,13 @@ import { deleteUser } from '@/app/lib/actions';
 
 export default function UsersTable({ users }: { users: any[] }) {
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [deletingUser, setDeletingUser] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus user "${name}"?`)) {
-      setIsDeleting(true);
-      await deleteUser(id);
-      setIsDeleting(false);
-    }
+  const confirmDelete = async (id: string) => {
+    setIsDeleting(true);
+    await deleteUser(id);
+    setIsDeleting(false);
   };
 
   return (
@@ -56,7 +55,7 @@ export default function UsersTable({ users }: { users: any[] }) {
                         Detail
                       </button>
                       <button 
-                        onClick={() => handleDelete(user.id, user.name)}
+                        onClick={() => setDeletingUser(user)}
                         disabled={isDeleting}
                         className="p-2 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50"
                       >
@@ -145,6 +144,44 @@ export default function UsersTable({ users }: { users: any[] }) {
                   Tutup
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+          <div 
+            className="absolute inset-0 bg-[#0c5132]/20 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setDeletingUser(null)}
+          ></div>
+          <div className="bg-white rounded-[32px] w-full max-w-sm shadow-2xl relative z-10 overflow-hidden p-6 md:p-8 text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-5 border border-red-100">
+              <TrashIcon className="w-8 h-8 animate-bounce" />
+            </div>
+            <h3 className="text-xl font-extrabold text-[#0c5132] mb-3">Konfirmasi Hapus</h3>
+            <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
+              Apakah Anda yakin ingin menghapus user <span className="font-extrabold text-red-500">"{deletingUser.name}"</span>? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setDeletingUser(null)}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-bold transition-all text-sm"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={async () => {
+                  const id = deletingUser.id;
+                  setDeletingUser(null);
+                  await confirmDelete(id);
+                }}
+                disabled={isDeleting}
+                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-1.5"
+              >
+                Hapus
+              </button>
             </div>
           </div>
         </div>

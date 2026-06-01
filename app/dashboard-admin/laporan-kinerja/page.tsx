@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { Poppins } from 'next/font/google';
@@ -44,29 +44,7 @@ function formatRupiahFull(val: number): string {
   return 'Rp ' + val.toLocaleString('id-ID');
 }
 
-function buildSmoothPath(
-  data: number[],
-  svgW: number,
-  svgH: number,
-  maxVal: number,
-): { line: string; fill: string } {
-  if (data.length === 0) return { line: '', fill: '' };
-  const padT = 10, padB = 10;
-  const h = svgH - padT - padB;
-  const dx = svgW / Math.max(data.length - 1, 1);
-  const getY = (v: number) => padT + h - (maxVal > 0 ? (v / maxVal) * h : 0);
-  const pts = data.map((v, i) => ({ x: i * dx, y: getY(v) }));
-  let line = `M${pts[0].x},${pts[0].y}`;
-  for (let i = 1; i < pts.length; i++) {
-    const cx1 = pts[i - 1].x + dx * 0.45;
-    const cy1 = pts[i - 1].y;
-    const cx2 = pts[i].x - dx * 0.45;
-    const cy2 = pts[i].y;
-    line += ` C${cx1},${cy1} ${cx2},${cy2} ${pts[i].x},${pts[i].y}`;
-  }
-  const fill = line + ` L${pts[pts.length - 1].x},${svgH} L${pts[0].x},${svgH} Z`;
-  return { line, fill };
-}
+
 
 export default function LaporanKinerja() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -78,7 +56,6 @@ export default function LaporanKinerja() {
   });
   const [revenueData, setRevenueData] = useState<{ date: string; revenue: number }[]>([]);
   const [volumeData, setVolumeData] = useState<{ date: string; count: number }[]>([]);
-  const [revTooltip, setRevTooltip] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -104,11 +81,8 @@ export default function LaporanKinerja() {
     return () => clearInterval(interval);
   }, [loadData]);
 
-  const SVG_W = 800;
-  const SVG_H = 180;
   const revValues = revenueData.map((d) => d.revenue);
   const maxRev = Math.max(...revValues, 1);
-  const { line: revLine, fill: revFill } = buildSmoothPath(revValues, SVG_W, SVG_H, maxRev);
 
   const volValues = volumeData.map((d) => d.count);
   const maxVol = Math.max(...volValues, 1);
@@ -152,7 +126,7 @@ export default function LaporanKinerja() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={loadData} disabled={isLoading} className="text-[#24a173] hover:bg-[#e6fce5] p-2 rounded-full transition-colors" title="Refresh">
+            <button onClick={loadData} disabled={isLoading} className="text-[#24a173] hover:bg-[#e6fce5] p-2 rounded-full transition-colors" title="Segarkan">
               <ArrowPathIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} strokeWidth={2.5} />
             </button>
             <button className="bg-[#24a173] hover:bg-[#1b8555] text-white text-[10px] md:text-xs font-semibold py-2 px-3 rounded-full flex items-center gap-1.5 shadow-sm transition-colors">
@@ -204,7 +178,7 @@ export default function LaporanKinerja() {
                 <div className="absolute right-4 top-4">
                   <span className="flex items-center gap-1.5 bg-white/60 backdrop-blur text-[10px] font-bold text-[#1b8555] px-2 py-1 rounded-full border border-white/80">
                     <span className="w-1.5 h-1.5 bg-[#24a173] rounded-full animate-pulse inline-block" />
-                    Live
+                    Aktif
                   </span>
                 </div>
                 <p className="text-[10px] md:text-xs text-gray-500 font-medium mb-1">Total Pendapatan Bulan Ini</p>
@@ -216,16 +190,16 @@ export default function LaporanKinerja() {
               </div>
             </div>
 
-            {/* Line Chart: Tren Pendapatan */}
+            {/* Bar Chart: Tren Pendapatan */}
             <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-[#24a173]">
-                  <ArrowTrendingUpIcon className="w-4 h-4" strokeWidth={2} />
+                  <ChartBarSolidIcon className="w-4 h-4" />
                   <h2 className="font-bold text-xs md:text-sm text-[#0c5132]">Tren Pendapatan Harian (7 Hari Terakhir)</h2>
                 </div>
                 <span className="flex items-center gap-1.5 bg-[#e6fce5] text-[10px] font-bold text-[#24a173] px-2 py-1 rounded-full border border-emerald-50">
                   <span className="w-1.5 h-1.5 bg-[#24a173] rounded-full animate-pulse inline-block" />
-                  Live
+                  Aktif
                 </span>
               </div>
 
@@ -233,53 +207,35 @@ export default function LaporanKinerja() {
                 <div className="absolute left-0 top-0 h-[180px] flex flex-col justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold w-12 text-right pr-2">
                   {revYLabels.map((l, i) => <span key={i}>{l}</span>)}
                 </div>
-                <div className="absolute left-14 right-0 top-0 h-[180px]">
-                  <svg
-                    viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-                    className="w-full h-full overflow-visible"
-                    preserveAspectRatio="none"
-                    onMouseLeave={() => setRevTooltip(null)}
-                  >
-                    <defs>
-                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#24a173" stopOpacity={0.25} />
-                        <stop offset="100%" stopColor="#24a173" stopOpacity={0.01} />
-                      </linearGradient>
-                    </defs>
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <line key={i} x1="0" y1={(SVG_H / 4) * i} x2={SVG_W} y2={(SVG_H / 4) * i}
-                        stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray={i === 0 ? '0' : '6 6'} />
-                    ))}
-                    {revFill && <path d={revFill} fill="url(#revGrad)" />}
-                    {revLine && <path d={revLine} fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                    {revenueData.map((d, i) => {
-                      const x = (i / Math.max(revenueData.length - 1, 1)) * SVG_W;
-                      const yVal = maxRev > 0 ? (d.revenue / maxRev) * (SVG_H - 20) : 0;
-                      const y = SVG_H - 10 - yVal;
-                      return (
-                        <g key={i}>
-                          <circle cx={x} cy={y} r={revTooltip === i ? 6 : 4}
-                            fill="#24a173" stroke="white" strokeWidth="2"
-                            className="transition-all duration-150 cursor-pointer"
-                            onMouseEnter={() => setRevTooltip(i)} />
-                        </g>
-                      );
-                    })}
-                  </svg>
-                  {revTooltip !== null && revenueData[revTooltip] && (
-                    <div className="absolute pointer-events-none bg-[#0c5132] text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl shadow-lg whitespace-nowrap z-10"
-                      style={{ left: `${(revTooltip / Math.max(revenueData.length - 1, 1)) * 100}%`, top: '-36px', transform: 'translateX(-50%)' }}>
-                      {formatRupiahFull(revenueData[revTooltip].revenue)}
-                    </div>
-                  )}
+                <div className="absolute left-14 right-0 top-0 h-[180px] border-l border-b border-gray-200 flex items-end justify-around px-2">
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                    {[0, 1, 2, 3].map((i) => <div key={i} className="w-full border-t border-gray-100 border-dashed h-0" />)}
+                    <div className="w-full h-0" />
+                  </div>
+                  {revenueData.map((d, i) => {
+                    const heightPct = maxRev > 0 ? (d.revenue / maxRev) * 100 : 0;
+                    return (
+                      <div key={i} className="flex-1 h-full flex flex-col justify-end items-center gap-0 relative group" style={{ maxWidth: 48 }}>
+                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#0c5132] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-md">
+                          {formatRupiahFull(d.revenue)}
+                        </div>
+                        <div className="w-full max-w-[28px] md:max-w-[40px] rounded-t-xl transition-all duration-700"
+                          style={{ 
+                            height: `${Math.max(heightPct, 6)}%`, 
+                            background: d.revenue === 0 ? '#cbd5e1' : 'linear-gradient(180deg, #24a173 0%, #1b8555 100%)' 
+                          }} 
+                        />
+                      </div>
+                    );
+                  })}
                   <div className="absolute -bottom-6 left-0 w-full flex justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold">
                     {revenueData.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
                   </div>
                 </div>
               </div>
               <div className="flex justify-center items-center mt-10 gap-2 text-[10px] font-bold text-[#24a173]">
-                <div className="w-4 border-t-2 border-[#24a173]" />
-                <span>Pendapatan (Rp)</span>
+                <div className="w-2.5 h-2.5 bg-[#24a173] rounded-[3px]" />
+                <span>Pendapatan</span>
               </div>
             </div>
 
@@ -292,7 +248,7 @@ export default function LaporanKinerja() {
                 </div>
                 <span className="flex items-center gap-1.5 bg-[#e6fce5] text-[10px] font-bold text-[#24a173] px-2 py-1 rounded-full border border-emerald-50">
                   <span className="w-1.5 h-1.5 bg-[#24a173] rounded-full animate-pulse inline-block" />
-                  Live
+                  Aktif
                 </span>
               </div>
               <div className="relative w-full" style={{ height: 220 }}>
@@ -307,14 +263,16 @@ export default function LaporanKinerja() {
                   {volumeData.map((d, i) => {
                     const heightPct = maxVol > 0 ? (d.count / maxVol) * 100 : 0;
                     return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-0 relative group" style={{ maxWidth: 48 }}>
-                        {d.count > 0 && (
-                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#0c5132] text-white text-[10px] font-bold px-2 py-0.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            {d.count} paket
-                          </div>
-                        )}
+                      <div key={i} className="flex-1 h-full flex flex-col justify-end items-center gap-0 relative group" style={{ maxWidth: 48 }}>
+                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#0c5132] text-white text-[10px] font-bold px-2 py-0.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-md">
+                          {d.count} paket
+                        </div>
                         <div className="w-full max-w-[28px] md:max-w-[40px] rounded-t-xl transition-all duration-700"
-                          style={{ height: `${Math.max(heightPct, d.count > 0 ? 4 : 0)}%`, background: d.count === 0 ? '#e6fce5' : 'linear-gradient(180deg, #24a173 0%, #1b8555 100%)' }} />
+                          style={{ 
+                            height: `${Math.max(heightPct, 6)}%`, 
+                            background: d.count === 0 ? '#cbd5e1' : 'linear-gradient(180deg, #24a173 0%, #1b8555 100%)' 
+                          }} 
+                        />
                       </div>
                     );
                   })}
