@@ -54,12 +54,12 @@ export default function Page() {
         <p className="text-emerald-500 font-semibold text-lg mb-8">"Teman Setia Bisnis Anda Berkembang" 💚</p>
         
         <div className="flex justify-center gap-4 mb-16">
-          <button className="bg-emerald-500 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-emerald-600">
+          <Link href="/register" className="bg-emerald-500 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-emerald-600 transition-colors">
             Mulai Sekarang <span>→</span>
-          </button>
-          <button className="border border-emerald-200 bg-emerald-50/50 text-emerald-700 px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-emerald-100">
+          </Link>
+          <Link href="/lacak-paket" className="border border-emerald-200 bg-emerald-50/50 text-emerald-700 px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-emerald-100 transition-colors">
             📦 Tracking Paket
-          </button>
+          </Link>
         </div>
 
         {/* Stats Row */}
@@ -124,7 +124,7 @@ export default function Page() {
                   <li className="flex gap-2"><span>✅</span> Asuransi paket</li>
                   <li className="flex gap-2"><span>✅</span> Customer support 24/7</li>
                 </ul>
-                <button className="w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600">Pilih Paket</button>
+                <Link href="/register" className="block w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors">Pilih Paket</Link>
               </div>
 
               {/* Paket Express */}
@@ -139,7 +139,7 @@ export default function Page() {
                   <li className="flex gap-2"><span>✅</span> Asuransi paket</li>
                   <li className="flex gap-2"><span>✅</span> Same day delivery</li>
                 </ul>
-                <button className="w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600">Pilih Paket</button>
+                <Link href="/register" className="block w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors">Pilih Paket</Link>
               </div>
 
               {/* Paket Cargo */}
@@ -154,7 +154,7 @@ export default function Page() {
                   <li className="flex gap-2"><span>✅</span> Asuransi penuh</li>
                   <li className="flex gap-2"><span>✅</span> Handling khusus</li>
                 </ul>
-                <button className="w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600">Pilih Paket</button>
+                <Link href="/register" className="block w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors">Pilih Paket</Link>
               </div>
             </div>
       </section>
