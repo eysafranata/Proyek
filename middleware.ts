@@ -28,16 +28,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Proteksi Halaman Auth (jika sudah login tidak boleh kembali ke login/register/forgot-password)
-  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
-  if (isAuthPage && userId) {
-    if (userRole === 'Admin') {
-      return NextResponse.redirect(new URL('/dashboard-admin', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-  }
-
+  // 3. Proteksi Halaman Auth dinonaktifkan agar form login selalu muncul saat tombol Masuk diklik
   return NextResponse.next();
 }
 
