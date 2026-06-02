@@ -49,6 +49,12 @@ export async function authenticateUser(formData: FormData) {
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: '/',
     });
+    cookieStore.set('session_user_role', user.role, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: '/',
+    });
 
     return { 
       success: true, 
@@ -206,6 +212,7 @@ export async function getUserStats() {
 export async function logoutUser() {
   const cookieStore = await cookies();
   cookieStore.delete('session_user_id');
+  cookieStore.delete('session_user_role');
   redirect('/login');
 }
 
