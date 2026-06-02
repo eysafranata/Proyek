@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Poppins } from 'next/font/google';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'KirimAja - Kirim Paket Mudah, Harga Bersahabat!',
+  description: 'Solusi Pengiriman Terpercaya untuk UMKM Indonesia. Nikmati kemudahan kirim paket reguler, express, dan cargo dengan harga paling bersahabat.',
+};
 
 const poppins = Poppins({
   subsets: ['latin'],
