@@ -35,9 +35,6 @@ export default function LoginPage() {
     if (!password) {
       newErrors.password = "Kata sandi salah atau belum diisi";
       isValid = false;
-    } else if (password.length < 8) {
-      newErrors.password = "Kata sandi salah atau belum diisi";
-      isValid = false;
     }
 
     setErrors(newErrors);

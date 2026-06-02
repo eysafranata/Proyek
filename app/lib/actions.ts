@@ -28,7 +28,7 @@ export async function authenticateUser(formData: FormData) {
   try {
     const users = await sql`
       SELECT * FROM users 
-      WHERE LOWER(name) = LOWER(${username})
+      WHERE LOWER(name) = LOWER(${username}) OR LOWER(email) = LOWER(${username})
     `;
 
     if (users.length === 0) {
