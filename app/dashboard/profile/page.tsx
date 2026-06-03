@@ -57,6 +57,21 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Client-side file size validation (max 1MB)
+    if (file.size > 1 * 1024 * 1024) {
+      showError('Ukuran foto terlalu besar. Maksimal adalah 1MB.');
+      e.target.value = ''; // Reset file input
+      return;
+    }
+
+    // Client-side file type validation
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      showError('Format file tidak didukung. Harap unggah PNG, JPG, JPEG, atau WEBP.');
+      e.target.value = '';
+      return;
+    }
+
     setIsUploadingAvatar(true);
     setAvatarError('');
 
@@ -67,7 +82,7 @@ export default function ProfilePage() {
       const res = await updateAvatar(user.id, formData);
       if (res.error) {
         setAvatarError(res.error);
-        showSuccess(res.error);
+        showError(res.error);
       } else if (res.success && res.avatarUrl) {
         setUser((prev: any) => ({ ...prev, avatar_url: res.avatarUrl }));
         setEditData((prev: any) => ({ ...prev, avatar_url: res.avatarUrl }));
@@ -75,9 +90,10 @@ export default function ProfilePage() {
       }
     } catch (err: any) {
       console.error("Gagal mengunggah foto profil", err);
-      setAvatarError('Gagal mengunggah foto profil.');
+      showError('Gagal mengunggah foto profil.');
     } finally {
       setIsUploadingAvatar(false);
+      e.target.value = '';
     }
   };
   const [passwordData, setPasswordData] = useState({
@@ -87,6 +103,7 @@ export default function ProfilePage() {
   });
   const [passErrors, setPassErrors] = useState<any>({});
   const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleEditToggle = () => {
     if (isEditing) {
@@ -135,6 +152,11 @@ export default function ProfilePage() {
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(''), 4000);
+  };
+
   return (
     <div className={`min-h-screen bg-[#f4fcf7] pb-10 ${poppins.className}`}>
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
@@ -158,6 +180,14 @@ export default function ProfilePage() {
         <div className="fixed top-24 right-6 z-[100] bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-bounce">
           <CheckCircleIcon className="w-6 h-6" />
           <span className="font-bold">{successMsg}</span>
+        </div>
+      )}
+
+      {/* Error / Warning Toast */}
+      {errorMsg && (
+        <div className="fixed top-24 right-6 z-[100] bg-red-500 text-white px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3 animate-bounce">
+          <XMarkIcon className="w-6 h-6 text-white" />
+          <span className="font-bold">{errorMsg}</span>
         </div>
       )}
 

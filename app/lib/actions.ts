@@ -238,9 +238,9 @@ export async function updateAvatar(userId: string, formData: FormData) {
     return { error: 'Tidak ada file yang dipilih' };
   }
 
-  // Validate size (max 2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    return { error: 'Ukuran file terlalu besar. Maksimal adalah 2MB.' };
+  // Validate size (max 1MB)
+  if (file.size > 1 * 1024 * 1024) {
+    return { error: 'Ukuran file terlalu besar. Maksimal adalah 1MB.' };
   }
 
   // Validate type
@@ -250,38 +250,10 @@ export async function updateAvatar(userId: string, formData: FormData) {
   }
 
   try {
-    const fs = require('fs/promises');
-    const path = require('path');
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Ensure public/uploads exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    // Get file extension
-    const ext = path.extname(file.name) || '.png';
-    const filename = `avatar-${userId}-${Date.now()}${ext}`;
-    const filepath = path.join(uploadDir, filename);
-
-    // Get current user to delete previous avatar if exists
-    const users = await sql`SELECT avatar_url FROM users WHERE id = ${userId}`;
-    if (users.length > 0 && users[0].avatar_url) {
-      const oldUrl = users[0].avatar_url;
-      if (oldUrl.startsWith('/uploads/')) {
-        const oldFilepath = path.join(process.cwd(), 'public', oldUrl);
-        try {
-          await fs.unlink(oldFilepath);
-        } catch (err: any) {
-          console.warn("Could not delete old avatar file:", err.message);
-        }
-      }
-    }
-
-    // Write new file
-    await fs.writeFile(filepath, buffer);
-    const avatarUrl = `/uploads/${filename}`;
+    const base64Image = buffer.toString('base64');
+    const avatarUrl = `data:${file.type};base64,${base64Image}`;
 
     // Update database
     await sql`UPDATE users SET avatar_url = ${avatarUrl} WHERE id = ${userId}`;
