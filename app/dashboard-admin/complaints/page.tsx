@@ -264,8 +264,16 @@ export default function AdminComplaintsPage() {
                       {/* Column 1: Sender details */}
                       <td className="px-6 py-5 align-top">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#1b8555] text-white font-bold flex items-center justify-center shadow-inner flex-shrink-0 text-sm">
-                            {c.name.charAt(0).toUpperCase()}
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-inner flex-shrink-0 text-sm overflow-hidden bg-[#1b8555]">
+                            {c.avatar_url ? (
+                              <img 
+                                src={c.avatar_url} 
+                                alt={c.name} 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span>{c.name.charAt(0).toUpperCase()}</span>
+                            )}
                           </div>
                           <div>
                             <h4 className="font-extrabold text-[#0c5132] text-sm leading-tight">{c.name}</h4>
@@ -380,14 +388,28 @@ export default function AdminComplaintsPage() {
             </h3>
 
             {/* Complaint Summary */}
-            <div className="bg-[#f8faf9] rounded-2xl p-5 border border-gray-100 mb-6 max-h-48 overflow-y-auto">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold text-[#24a173] uppercase bg-[#e6fce5] px-2 py-0.5 rounded">
-                  {replyingComplaint.type}
-                </span>
-                <span className="text-xs font-bold text-gray-400">
-                  Dari: {replyingComplaint.name} ({replyingComplaint.email})
-                </span>
+            <div className="bg-[#f8faf9] rounded-2xl p-5 border border-gray-100 mb-6 max-h-56 overflow-y-auto">
+              <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100/50">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs overflow-hidden bg-[#1b8555] flex-shrink-0">
+                  {replyingComplaint.avatar_url ? (
+                    <img 
+                      src={replyingComplaint.avatar_url} 
+                      alt={replyingComplaint.name} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{replyingComplaint.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-black text-[#24a173] uppercase bg-[#e6fce5] px-2 py-0.5 rounded">
+                      {replyingComplaint.type}
+                    </span>
+                    <span className="font-extrabold text-sm text-[#0c5132]">{replyingComplaint.name}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-gray-400 mt-0.5">{replyingComplaint.email}</span>
+                </div>
               </div>
               <h4 className="font-extrabold text-sm text-[#0c5132] mb-1">{replyingComplaint.title}</h4>
               <p className="text-gray-500 text-xs md:text-sm font-medium leading-relaxed whitespace-pre-wrap">{replyingComplaint.message}</p>

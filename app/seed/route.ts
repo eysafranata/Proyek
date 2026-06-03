@@ -16,6 +16,7 @@ async function seedUsers(sql: any) {
       phone VARCHAR(20),
       kota_asal VARCHAR(100),
       role VARCHAR(20) DEFAULT 'Pelanggan',
+      avatar_url TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;

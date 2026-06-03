@@ -32,7 +32,20 @@ export default function UsersTable({ users }: { users: any[] }) {
               users.map((user) => (
                 <tr key={user.id} className="hover:bg-[#fcfdfc] transition-colors group">
                   <td className="px-8 py-6">
-                    <span className="font-bold text-[#0c5132]">{user.name}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-extrabold text-xs shadow-sm overflow-hidden bg-[#1b8555] flex-shrink-0">
+                        {user.avatar_url ? (
+                          <img 
+                            src={user.avatar_url} 
+                            alt={user.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{user.name ? user.name.charAt(0) : ''}</span>
+                        )}
+                      </div>
+                      <span className="font-bold text-[#0c5132]">{user.name}</span>
+                    </div>
                   </td>
                   <td className="px-8 py-6">
                     <span className="text-gray-500 font-medium">{user.email}</span>
@@ -97,8 +110,16 @@ export default function UsersTable({ users }: { users: any[] }) {
 
               <div className="space-y-6">
                 <div className="flex items-center gap-4 p-4 bg-[#f8faf9] rounded-2xl">
-                  <div className="w-14 h-14 bg-[#e6fce5] rounded-full flex items-center justify-center text-[#24a173] text-xl font-bold">
-                    {selectedUser.name.charAt(0)}
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold overflow-hidden bg-[#e6fce5] flex-shrink-0">
+                    {selectedUser.avatar_url ? (
+                      <img 
+                        src={selectedUser.avatar_url} 
+                        alt={selectedUser.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[#24a173]">{selectedUser.name ? selectedUser.name.charAt(0) : ''}</span>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm text-gray-400 font-bold uppercase tracking-wider">Nama Lengkap</p>

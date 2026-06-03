@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -12,7 +13,7 @@ import {
   ArrowLeftOnRectangleIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { logoutUser } from '@/app/lib/actions';
+import { logoutUser, getCurrentUser } from '@/app/lib/actions';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,6 +22,19 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      const data = await getCurrentUser();
+      if (data) {
+        setUser(data);
+      }
+    }
+    if (isOpen) {
+      loadUser();
+    }
+  }, [isOpen]);
 
   const navigation = [
     { name: 'Beranda', href: '/dashboard', icon: HomeIcon },
@@ -46,18 +60,42 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-2 border-b-transparent">
-          <div className="flex items-center gap-3">
-            <Image src="/logo1.jpeg" alt="Logo" width={36} height={36} className="object-contain rounded" />
-            <div>
-              <h2 className="text-xl font-extrabold text-[#0c5132] tracking-tight leading-tight">KirimAja</h2>
-              <p className="text-[10px] font-medium text-gray-500">Pengiriman Terpercaya</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 -mr-2 text-gray-500 hover:bg-gray-100 rounded-lg">
-            <XMarkIcon className="w-6 h-6" />
+        {/* Profile / Header Section */}
+        <div className="p-6 border-b border-gray-50 bg-gradient-to-br from-[#f4fcf7] to-white relative">
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100"
+          >
+            <XMarkIcon className="w-5 h-5" />
           </button>
+          
+          {user ? (
+            <div className="flex items-center gap-4 mt-2">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-sm overflow-hidden bg-[#1b8555]">
+                {user.avatar_url ? (
+                  <img 
+                    src={user.avatar_url} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{user.name.charAt(0)}</span>
+                )}
+              </div>
+              <div>
+                <h2 className="font-extrabold text-[#0c5132] text-sm leading-tight">{user.name}</h2>
+                <p className="text-[11px] text-[#24a173] font-medium">{user.role || 'Pelanggan'}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Image src="/logo1.jpeg" alt="Logo" width={36} height={36} className="object-contain rounded" />
+              <div>
+                <h2 className="text-xl font-extrabold text-[#0c5132] tracking-tight leading-tight">KirimAja</h2>
+                <p className="text-[10px] font-medium text-gray-500">Pengiriman Terpercaya</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Navigation Links */}

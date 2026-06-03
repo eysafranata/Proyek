@@ -18,7 +18,7 @@ import {
   MapPinIcon
 } from '@heroicons/react/24/outline';
 import Sidebar from '@/components/Sidebar';
-import { updateProfile, changePassword, getCurrentUser } from '@/app/lib/actions';
+import { updateProfile, changePassword, getCurrentUser, updateAvatar } from '@/app/lib/actions';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -50,6 +50,36 @@ export default function ProfilePage() {
   }, []);
 
   const [editData, setEditData] = useState({ ...user });
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setAvatarError('');
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const res = await updateAvatar(user.id, formData);
+      if (res.error) {
+        setAvatarError(res.error);
+        showSuccess(res.error);
+      } else if (res.success && res.avatarUrl) {
+        setUser((prev: any) => ({ ...prev, avatar_url: res.avatarUrl }));
+        setEditData((prev: any) => ({ ...prev, avatar_url: res.avatarUrl }));
+        showSuccess('Foto profil berhasil diperbarui!');
+      }
+    } catch (err: any) {
+      console.error("Gagal mengunggah foto profil", err);
+      setAvatarError('Gagal mengunggah foto profil.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -145,8 +175,45 @@ export default function ProfilePage() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#e6fce5] rounded-full -mr-16 -mt-16 opacity-50"></div>
           
           <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-            <div className="w-24 h-24 bg-[#48cc81] rounded-full flex items-center justify-center text-white text-4xl font-extrabold shadow-inner">
-              {user.name.charAt(0)}
+            <div className="relative">
+              <input 
+                type="file" 
+                id="avatarInput" 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleAvatarChange} 
+                disabled={isUploadingAvatar}
+              />
+              <div 
+                onClick={() => document.getElementById('avatarInput')?.click()}
+                className="relative group w-24 h-24 rounded-full flex items-center justify-center text-white text-4xl font-extrabold shadow-md cursor-pointer overflow-hidden bg-[#48cc81] transition-all hover:ring-4 hover:ring-emerald-100"
+              >
+                {user.avatar_url ? (
+                  <img 
+                    src={user.avatar_url} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{user.name ? user.name.charAt(0) : ''}</span>
+                )}
+                
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/45 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <PencilIcon className="w-5 h-5 text-white mb-0.5" />
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-white/90">Ganti</span>
+                </div>
+                
+                {/* Uploading loading spinner */}
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="text-center md:text-left flex-grow">
               <h2 className="text-3xl font-extrabold text-[#0c5132] mb-1">{user.name}</h2>
