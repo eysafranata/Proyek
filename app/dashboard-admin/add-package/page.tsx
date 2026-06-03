@@ -39,6 +39,7 @@ export default function AddPackagePage() {
     jenis_kendaraan: '',
     plat_kendaraan: '',
     deskripsi: '',
+    kode_pos: '',
     total_price: '',
   });
 
@@ -78,7 +79,11 @@ export default function AddPackagePage() {
         }));
       }
       if (errors.jenis_kendaraan) {
-        setErrors(prev => ({ ...prev, jenis_kendaraan: false }));
+        setErrors(prev => {
+          const next = { ...prev };
+          delete next.jenis_kendaraan;
+          return next;
+        });
       }
       return;
     }
@@ -102,7 +107,27 @@ export default function AddPackagePage() {
 
     setFormData(updatedData);
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: false }));
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+    if (name === 'no_telepon') {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.no_telepon;
+        delete next.no_telepon_length;
+        return next;
+      });
+    }
+    if (name === 'kode_pos') {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.kode_pos;
+        delete next.kode_pos_format;
+        return next;
+      });
     }
   };
 
@@ -116,10 +141,24 @@ export default function AddPackagePage() {
     if (!formData.destination) newErrors.destination = true;
     if (!formData.weight || parseFloat(formData.weight) <= 0) newErrors.weight = true;
     if (!formData.tanggal_kirim) newErrors.tanggal_kirim = true;
-    if (!formData.no_telepon) newErrors.no_telepon = true;
+    
+    if (!formData.no_telepon) {
+      newErrors.no_telepon = true;
+    } else {
+      const phoneDigits = formData.no_telepon.replace(/\D/g, '');
+      if (phoneDigits.length < 10) {
+        newErrors.no_telepon_length = true;
+      }
+    }
+    
     if (!formData.jenis_barang) newErrors.jenis_barang = true;
     if (!formData.jenis_kendaraan) newErrors.jenis_kendaraan = true;
-    if (!formData.deskripsi) newErrors.deskripsi = true;
+    
+    if (!formData.kode_pos) {
+      newErrors.kode_pos = true;
+    } else if (!/^\d{4}$/.test(formData.kode_pos)) {
+      newErrors.kode_pos_format = true;
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -261,8 +300,14 @@ export default function AddPackagePage() {
                   placeholder="Contoh: 081234567890"
                   value={formData.no_telepon}
                   onChange={handleInputChange}
-                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.no_telepon ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.no_telepon || errors.no_telepon_length ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
+                {errors.no_telepon && (
+                  <p className="text-red-500 text-xs mt-1 font-bold">Nomor telepon wajib diisi</p>
+                )}
+                {errors.no_telepon_length && (
+                  <p className="text-red-500 text-xs mt-1 font-bold">Nomor telepon minimal terdiri dari 10 digit</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Jenis Barang</label>
@@ -298,6 +343,26 @@ export default function AddPackagePage() {
                   onChange={handleInputChange}
                   className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.destination ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
+              </div>
+
+              {/* Row 4b: Kode Pos */}
+              <div>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Kode Pos Kirim</label>
+                <input 
+                  type="text" 
+                  name="kode_pos"
+                  placeholder="Contoh: 1234"
+                  maxLength={4}
+                  value={formData.kode_pos}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.kode_pos || errors.kode_pos_format ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                />
+                {errors.kode_pos && (
+                  <p className="text-red-500 text-xs mt-1 font-bold">Kode pos wajib diisi</p>
+                )}
+                {errors.kode_pos_format && (
+                  <p className="text-red-500 text-xs mt-1 font-bold">Kode pos harus berupa 4 digit angka</p>
+                )}
               </div>
 
               {/* Row 5 */}
@@ -376,22 +441,20 @@ export default function AddPackagePage() {
 
               {/* Row 7 */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-bold text-[#0c5132] mb-2">Deskripsi/Catatan Barang</label>
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Deskripsi/Catatan Barang (Opsional)</label>
                 <textarea 
                   name="deskripsi"
-                  placeholder="Contoh: Barang mudah pecah, harap berhati-hati"
+                  placeholder="Contoh: Barang mudah pecah, harap berhati-hati (Boleh dikosongkan)"
                   value={formData.deskripsi}
                   onChange={(e) => {
                     const { name, value } = e.target;
                     setFormData(prev => ({ ...prev, [name]: value }));
-                    if (errors[name]) setErrors(prev => ({ ...prev, [name]: false }));
                   }}
                   rows={3}
-                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none resize-none ${errors.deskripsi ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                  className="w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none resize-none border-[#e0e7e3] focus:border-[#24a173]"
                 ></textarea>
               </div>
             </div>
-
             {/* Pricing Breakdown Box */}
             {parseInt(formData.total_price || '0') > 0 && (
               <div className="mt-12 md:mt-16 bg-[#e6f7ec] rounded-[32px] p-8 md:p-10 border border-emerald-100 animate-in fade-in slide-in-from-bottom duration-500">
@@ -542,9 +605,9 @@ export default function AddPackagePage() {
                           jenis_kendaraan: '',
                           plat_kendaraan: '',
                           deskripsi: '',
+                          kode_pos: '',
                           total_price: '',
                         });
-                        // Generate resi baru untuk pengiriman berikutnya
                         const newResi = `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
                         setResi(newResi);
                     }}

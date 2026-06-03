@@ -39,6 +39,7 @@ export default function KendaraanPage() {
     status_kendaraan: "Tersedia",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [deletingVehicle, setDeletingVehicle] = useState<any | null>(null);
 
   const loadVehicles = useCallback(async () => {
@@ -60,6 +61,13 @@ export default function KendaraanPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
   };
 
   const openAddModal = () => {
@@ -72,6 +80,7 @@ export default function KendaraanPage() {
       kapasitas_muatan: "",
       status_kendaraan: "Tersedia",
     });
+    setErrors({});
     setIsModalOpen(true);
   };
 
@@ -85,11 +94,37 @@ export default function KendaraanPage() {
       kapasitas_muatan: vehicle.kapasitas_muatan.toString(),
       status_kendaraan: vehicle.status_kendaraan,
     });
+    setErrors({});
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Client-side validations
+    const newErrors: Record<string, string> = {};
+    if (!formData.nama_kendaraan.trim()) {
+      newErrors.nama_kendaraan = "Nama kendaraan wajib diisi.";
+    }
+    if (!formData.kode_kendaraan.trim()) {
+      newErrors.kode_kendaraan = "Plat nomor/kode kendaraan wajib diisi.";
+    } else {
+      const platRegex = /^[bB]\s?\d{4}\s?[a-zA-Z]+$/;
+      if (!platRegex.test(formData.kode_kendaraan.trim())) {
+        newErrors.kode_kendaraan = "Format plat nomor salah. Harus diawali dengan B, diikuti 4 digit angka, lalu kombinasi huruf (Contoh: B 1234 ABC).";
+      }
+    }
+    if (!formData.kapasitas_muatan.trim()) {
+      newErrors.kapasitas_muatan = "Kapasitas muatan wajib diisi.";
+    } else if (isNaN(Number(formData.kapasitas_muatan)) || Number(formData.kapasitas_muatan) <= 0) {
+      newErrors.kapasitas_muatan = "Kapasitas muatan harus berupa angka positif.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setIsSubmitting(true);
     
     const data = new FormData();
@@ -244,10 +279,14 @@ export default function KendaraanPage() {
                   name="nama_kendaraan"
                   value={formData.nama_kendaraan}
                   onChange={handleInputChange}
-                  required
                   placeholder="Contoh: Honda Vario"
-                  className="w-full px-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                  className={`w-full px-4 py-3 bg-[#f8faf9] border-2 rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none transition-all ${
+                    errors.nama_kendaraan ? 'border-red-500' : 'border-transparent'
+                  }`}
                 />
+                {errors.nama_kendaraan && (
+                  <p className="text-red-500 text-xs mt-1 font-bold">{errors.nama_kendaraan}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -271,10 +310,14 @@ export default function KendaraanPage() {
                     name="kode_kendaraan"
                     value={formData.kode_kendaraan}
                     onChange={handleInputChange}
-                    required
                     placeholder="B 1234 CD"
-                    className="w-full px-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none uppercase"
+                    className={`w-full px-4 py-3 bg-[#f8faf9] border-2 rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none uppercase transition-all ${
+                      errors.kode_kendaraan ? 'border-red-500' : 'border-transparent'
+                    }`}
                   />
+                  {errors.kode_kendaraan && (
+                    <p className="text-red-500 text-xs mt-1 font-bold">{errors.kode_kendaraan}</p>
+                  )}
                 </div>
               </div>
 
@@ -287,10 +330,14 @@ export default function KendaraanPage() {
                     name="kapasitas_muatan"
                     value={formData.kapasitas_muatan}
                     onChange={handleInputChange}
-                    required
                     placeholder="100"
-                    className="w-full px-4 py-3 bg-[#f8faf9] border-2 border-transparent rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none"
+                    className={`w-full px-4 py-3 bg-[#f8faf9] border-2 rounded-2xl font-medium text-[#0c5132] focus:border-[#24a173] outline-none transition-all ${
+                      errors.kapasitas_muatan ? 'border-red-500' : 'border-transparent'
+                    }`}
                   />
+                  {errors.kapasitas_muatan && (
+                    <p className="text-red-500 text-xs mt-1 font-bold">{errors.kapasitas_muatan}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-[#0c5132] mb-2">Status</label>

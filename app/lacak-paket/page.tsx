@@ -17,7 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { TruckIcon } from '@heroicons/react/24/solid';
 import Sidebar from '@/components/Sidebar';
-import { fetchMyPackages } from '@/app/lib/actions';
+import { fetchMyPackages, fetchPackageByResi } from '@/app/lib/actions';
 import Pagination from '@/app/ui/pagination';
 
 const poppins = Poppins({
@@ -61,19 +61,27 @@ function LacakPaketContent() {
     loadPackages();
   }, []);
 
-  const handleLacak = (e?: React.FormEvent) => {
+  const handleLacak = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const pkg = myPackages.find(p => p.resi.toUpperCase() === resiInput.trim().toUpperCase());
-    
-    if (pkg) {
-      setSelectedPackage(pkg);
-      setShowResult(true);
-      setNotFound(false);
-    } else if (resiInput.trim().toUpperCase() === 'CKL2026040001') {
-      setSelectedPackage(null);
-      setShowResult(true);
-      setNotFound(false);
-    } else {
+    const cleanResi = resiInput.trim();
+    if (!cleanResi) return;
+
+    try {
+      const pkg = await fetchPackageByResi(cleanResi);
+      if (pkg) {
+        setSelectedPackage(pkg);
+        setShowResult(true);
+        setNotFound(false);
+      } else if (cleanResi.toUpperCase() === 'CKL2026040001') {
+        setSelectedPackage(null);
+        setShowResult(true);
+        setNotFound(false);
+      } else {
+        setShowResult(false);
+        setNotFound(true);
+      }
+    } catch (error) {
+      console.error("Gagal melacak paket", error);
       setShowResult(false);
       setNotFound(true);
     }
@@ -101,15 +109,15 @@ function LacakPaketContent() {
       <div className="flex-1 w-full max-w-screen-xl mx-auto px-6 md:px-12 xl:px-24 pt-10 md:pt-16 pb-20">
         
         {/* Header Title */}
-        <div className="max-w-3xl mb-8 md:mb-12">
+        <div className="max-w-3xl mx-auto text-center mb-8 md:mb-12">
           <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-3 tracking-tight">Lacak Paket</h1>
           <p className="text-gray-600 text-[15px] md:text-lg">
             Pantau perjalanan paket Anda secara real-time dengan presisi kinetik.
           </p>
         </div>
 
-        {/* Search Bar aligned to left */}
-        <form onSubmit={handleLacak} className="flex flex-col md:flex-row items-center gap-4 max-w-3xl mb-12">
+        {/* Search Bar aligned to center */}
+        <form onSubmit={handleLacak} className="flex flex-col md:flex-row items-center gap-4 max-w-3xl mx-auto mb-12">
           <div className="relative flex items-center w-full bg-white rounded-[24px] shadow-sm border border-gray-100 p-1 md:p-1.5 flex-1 transition-all">
             <div className="pl-4 md:pl-5 flex items-center pointer-events-none">
               <MagnifyingGlassIcon className="w-5 h-5 md:w-6 md:h-6 text-[#1db372]" strokeWidth={2.5} />
@@ -147,7 +155,7 @@ function LacakPaketContent() {
 
         {/* Daftar Paket Saya */}
         {!showResult && myPackages.length > 0 && (
-          <div className="max-w-3xl mb-12 animate-in fade-in slide-in-from-bottom-4">
+          <div className="max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4">
             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
               <CubeIcon className="w-5 h-5 text-[#1db372]" />
               Paket Anda Saat Ini
@@ -189,7 +197,7 @@ function LacakPaketContent() {
 
         {/* Not Found View */}
         {notFound && !showResult && (
-          <div className="max-w-3xl flex flex-col items-center justify-center bg-white border border-red-100 rounded-[24px] shadow-sm p-10 mb-8 animate-in fade-in">
+          <div className="max-w-3xl mx-auto flex flex-col items-center justify-center bg-white border border-red-100 rounded-[24px] shadow-sm p-10 mb-8 animate-in fade-in">
             <div className="bg-red-50 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

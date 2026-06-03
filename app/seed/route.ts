@@ -43,6 +43,7 @@ async function seedUsers(sql: any) {
       status_barang VARCHAR(50) DEFAULT 'Aman',
       status_transaksi VARCHAR(50) DEFAULT 'Belum Lunas',
       plat_kendaraan VARCHAR(50),
+      kode_pos VARCHAR(10),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;

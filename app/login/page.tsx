@@ -55,9 +55,9 @@ export default function LoginPage() {
 
     if (result.success && result.user) {
       if (result.user.role === 'Admin') {
-        router.push('/dashboard-admin');
+        window.location.href = '/dashboard-admin';
       } else {
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }
     } else {
       setErrors({

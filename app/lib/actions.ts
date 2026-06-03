@@ -246,10 +246,23 @@ export async function createPackage(formData: FormData) {
   const jenis_barang = formData.get('jenis_barang') as string;
   const jenis_kendaraan = formData.get('jenis_kendaraan') as string;
   const plat_kendaraan = formData.get('plat_kendaraan') as string;
-  const deskripsi = formData.get('deskripsi') as string;
+  const deskripsi = (formData.get('deskripsi') as string) || '';
+  const kode_pos = (formData.get('kode_pos') as string) || '';
 
-  if (!sender_name || !receiver_name || !origin || !destination || !weight || !tanggal_kirim || !no_telepon || !jenis_barang || !jenis_kendaraan || !deskripsi) {
+  // deskripsi is now optional, but others are required
+  if (!sender_name || !receiver_name || !origin || !destination || !weight || !tanggal_kirim || !no_telepon || !jenis_barang || !jenis_kendaraan || !kode_pos) {
     return { error: 'Mohon lengkapi semua data!' };
+  }
+
+  // Validate no_telepon: minimum 10 digits
+  const phoneDigits = no_telepon.replace(/\D/g, '');
+  if (phoneDigits.length < 10) {
+    return { error: 'Nomor telepon minimal terdiri dari 10 digit.' };
+  }
+
+  // Validate kode_pos: exactly 4 digits of numbers
+  if (!/^\d{4}$/.test(kode_pos)) {
+    return { error: 'Kode Pos harus berupa 4 digit angka.' };
   }
 
   // Validate sender_name against users table
@@ -270,8 +283,8 @@ export async function createPackage(formData: FormData) {
 
   try {
     const result = await sql`
-      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price, user_id, tanggal_kirim, no_telepon, jenis_barang, jenis_kendaraan, plat_kendaraan, deskripsi)
-      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price}, ${user_id}, ${tanggal_kirim}, ${no_telepon}, ${jenis_barang}, ${jenis_kendaraan}, ${plat_kendaraan}, ${deskripsi})
+      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price, user_id, tanggal_kirim, no_telepon, jenis_barang, jenis_kendaraan, plat_kendaraan, deskripsi, kode_pos)
+      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price}, ${user_id}, ${tanggal_kirim}, ${no_telepon}, ${jenis_barang}, ${jenis_kendaraan}, ${plat_kendaraan}, ${deskripsi}, ${kode_pos})
       RETURNING *
     `;
     
@@ -280,6 +293,25 @@ export async function createPackage(formData: FormData) {
   } catch (error) {
     console.error('Database Error:', error);
     return { error: 'Gagal simpan paket ke database.' };
+  }
+}
+
+export async function fetchPackageByResi(resi: string) {
+  try {
+    const packages = await sql`
+      SELECT * FROM packages 
+      WHERE UPPER(resi) = UPPER(${resi.trim()})
+    `;
+    if (packages.length === 0) return null;
+    const pkg = packages[0];
+    return {
+      ...pkg,
+      created_at: pkg.created_at ? pkg.created_at.toISOString() : null,
+      tanggal_kirim: pkg.tanggal_kirim ? pkg.tanggal_kirim.toISOString().split('T')[0] : null
+    };
+  } catch (error) {
+    console.error('Database Error:', error);
+    return null;
   }
 }
 
@@ -741,10 +773,19 @@ export async function createVehicle(formData: FormData) {
   const kapasitas_muatan = parseFloat(formData.get('kapasitas_muatan') as string);
   const status_kendaraan = formData.get('status_kendaraan') as string;
 
+  if (!nama_kendaraan || !jenis_kendaraan || !kode_kendaraan || isNaN(kapasitas_muatan)) {
+    return { error: 'Semua kolom wajib diisi!' };
+  }
+
+  const platRegex = /^[bB]\s?\d{4}\s?[a-zA-Z]+$/;
+  if (!platRegex.test(kode_kendaraan.trim())) {
+    return { error: 'Format plat nomor salah. Contoh format yang benar: B 1234 ABC' };
+  }
+
   try {
     await sql`
       INSERT INTO vehicles (nama_kendaraan, jenis_kendaraan, kode_kendaraan, kapasitas_muatan, status_kendaraan)
-      VALUES (${nama_kendaraan}, ${jenis_kendaraan}, ${kode_kendaraan}, ${kapasitas_muatan}, ${status_kendaraan})
+      VALUES (${nama_kendaraan}, ${jenis_kendaraan}, ${kode_kendaraan.trim().toUpperCase()}, ${kapasitas_muatan}, ${status_kendaraan})
     `;
     revalidatePath('/dashboard-admin/vehicles');
     return { success: true };
@@ -764,10 +805,19 @@ export async function updateVehicle(id: string, formData: FormData) {
   const kapasitas_muatan = parseFloat(formData.get('kapasitas_muatan') as string);
   const status_kendaraan = formData.get('status_kendaraan') as string;
 
+  if (!nama_kendaraan || !jenis_kendaraan || !kode_kendaraan || isNaN(kapasitas_muatan)) {
+    return { error: 'Semua kolom wajib diisi!' };
+  }
+
+  const platRegex = /^[bB]\s?\d{4}\s?[a-zA-Z]+$/;
+  if (!platRegex.test(kode_kendaraan.trim())) {
+    return { error: 'Format plat nomor salah. Contoh format yang benar: B 1234 ABC' };
+  }
+
   try {
     await sql`
       UPDATE vehicles 
-      SET nama_kendaraan = ${nama_kendaraan}, jenis_kendaraan = ${jenis_kendaraan}, kode_kendaraan = ${kode_kendaraan}, kapasitas_muatan = ${kapasitas_muatan}, status_kendaraan = ${status_kendaraan}
+      SET nama_kendaraan = ${nama_kendaraan}, jenis_kendaraan = ${jenis_kendaraan}, kode_kendaraan = ${kode_kendaraan.trim().toUpperCase()}, kapasitas_muatan = ${kapasitas_muatan}, status_kendaraan = ${status_kendaraan}
       WHERE id = ${id}
     `;
     revalidatePath('/dashboard-admin/vehicles');
