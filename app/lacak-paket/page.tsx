@@ -129,28 +129,22 @@ function LacakPaketContent() {
               onChange={(e) => setResiInput(e.target.value)}
               className="flex-1 w-full py-3 md:py-4 px-4 bg-transparent outline-none border-none focus:ring-0 text-[#1db372] placeholder-gray-400 font-bold md:text-lg"
             />
-            {/* If NOT showing result, the button is inside the input box on desktop/mobile mimicking the first image. 
-                But in the new image, the button is outside. We will just put it outside if showResult is true, or keep it inside.
-                Actually, the new image shows it completely outside. Let's adapt dynamically. */}
-            {!showResult && (
-              <button 
-                type="submit"
-                className="hidden md:flex bg-[#1db372] hover:bg-[#159a58] text-white px-6 md:px-8 py-3 rounded-[20px] font-bold text-sm md:text-base items-center gap-2 transition-colors shadow-sm whitespace-nowrap"
-              >
-                Lacak <span>→</span>
-              </button>
-            )}
-          </div>
-          
-          {/* Button Outside (Mobile & when result is shown) */}
-          {(showResult || true) && (
+            {/* Tombol Lacak selalu berada di dalam input field untuk tampilan desktop */}
             <button 
               type="submit"
-              className={`${showResult ? 'flex' : 'flex md:hidden'} w-full md:w-auto bg-[#1db372] hover:bg-[#159a58] text-white px-8 md:px-10 py-4 md:py-[22px] rounded-[24px] font-bold text-sm md:text-base items-center justify-center gap-2 transition-colors shadow-sm whitespace-nowrap`}
+              className="hidden md:flex bg-[#1db372] hover:bg-[#159a58] text-white px-6 md:px-8 py-3 rounded-[20px] font-bold text-sm md:text-base items-center gap-2 transition-colors shadow-sm whitespace-nowrap"
             >
               Lacak <span>→</span>
             </button>
-          )}
+          </div>
+          
+          {/* Tombol Lacak selalu berada di luar input field untuk tampilan mobile */}
+          <button 
+            type="submit"
+            className="flex md:hidden w-full bg-[#1db372] hover:bg-[#159a58] text-white px-8 py-4 rounded-[24px] font-bold text-sm items-center justify-center gap-2 transition-colors shadow-sm whitespace-nowrap"
+          >
+            Lacak <span>→</span>
+          </button>
         </form>
 
         {/* Daftar Paket Saya */}
