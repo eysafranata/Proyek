@@ -114,6 +114,12 @@ export default function ProfilePage() {
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!editData.name || !editData.name.trim() || !editData.email || !editData.email.trim()) {
+      showError('Nama dan Email wajib diisi!');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('name', editData.name);
     formData.append('email', editData.email);
@@ -121,7 +127,9 @@ export default function ProfilePage() {
     formData.append('kota_asal', editData.kota_asal);
     
     const res = await updateProfile(user.id, formData);
-    if (!res?.message.includes('Error')) {
+    if (res && res.error) {
+      showError(res.message);
+    } else {
       setUser({ ...editData });
       setIsEditing(false);
       showSuccess('Profil berhasil diperbarui!');

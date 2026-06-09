@@ -142,7 +142,7 @@ export default function LoginPage() {
                   Password <span className="text-red-700">*</span>
                 </label>
                 <Link href="/forgot-password" className="text-xs font-extrabold text-emerald-950 hover:text-white transition-colors duration-200">
-                  Forgot Password?
+                  Lupa Kata Sandi?
                 </Link>
               </div>
               <div className="relative group">
@@ -184,7 +184,7 @@ export default function LoginPage() {
               type="submit"
               className="w-full bg-[#1b8555] text-white font-bold py-4 rounded-2xl hover:bg-[#125e3b] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 mt-2 shadow-md hover:shadow-lg flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
             >
-              Sign In
+              Masuk
             </button>
           </form>
 

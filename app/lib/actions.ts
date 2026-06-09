@@ -104,6 +104,10 @@ export async function updateProfile(id: string, formData: FormData) {
   const phone = formData.get('phone') as string;
   const kota_asal = formData.get('kota_asal') as string;
 
+  if (!name || !name.trim() || !email || !email.trim()) {
+    return { error: true, message: 'Error: Nama dan Email wajib diisi!' };
+  }
+
   try {
     await sql`
       UPDATE users
@@ -111,11 +115,11 @@ export async function updateProfile(id: string, formData: FormData) {
       WHERE id = ${id}
     `;
   } catch (error) {
-    return { message: 'Database Error: Failed to Update Profile.' };
+    return { error: true, message: 'Database Error: Failed to Update Profile.' };
   }
 
   revalidatePath('/dashboard/profile');
-  return { message: 'Profil berhasil diperbarui' };
+  return { success: true, message: 'Profil berhasil diperbarui' };
 }
 
 export async function changePassword(id: string, formData: FormData) {
@@ -281,21 +285,17 @@ export async function createPackage(formData: FormData) {
   const plat_kendaraan = formData.get('plat_kendaraan') as string;
   const deskripsi = (formData.get('deskripsi') as string) || '';
   const kode_pos = (formData.get('kode_pos') as string) || '';
+  const alamat = (formData.get('alamat') as string) || '';
 
   // deskripsi is now optional, but others are required
-  if (!sender_name || !receiver_name || !origin || !destination || !weight || !tanggal_kirim || !no_telepon || !jenis_barang || !jenis_kendaraan || !kode_pos) {
+  if (!sender_name || !receiver_name || !origin || !destination || !weight || !tanggal_kirim || !no_telepon || !jenis_barang || !jenis_kendaraan || !kode_pos || !alamat) {
     return { error: 'Mohon lengkapi semua data!' };
   }
 
-  // Validate no_telepon: minimum 10 digits
+  // Validate no_telepon: minimal 10 digit, maksimal 12 digit
   const phoneDigits = no_telepon.replace(/\D/g, '');
-  if (phoneDigits.length < 10) {
-    return { error: 'Nomor telepon minimal terdiri dari 10 digit.' };
-  }
-
-  // Validate kode_pos: exactly 4 digits of numbers
-  if (!/^\d{4}$/.test(kode_pos)) {
-    return { error: 'Kode Pos harus berupa 4 digit angka.' };
+  if (phoneDigits.length < 10 || phoneDigits.length > 12) {
+    return { error: 'Nomor telepon harus terdiri dari 10 sampai 12 digit.' };
   }
 
   // Validate sender_name against users table
@@ -316,8 +316,8 @@ export async function createPackage(formData: FormData) {
 
   try {
     const result = await sql`
-      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price, user_id, tanggal_kirim, no_telepon, jenis_barang, jenis_kendaraan, plat_kendaraan, deskripsi, kode_pos)
-      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price}, ${user_id}, ${tanggal_kirim}, ${no_telepon}, ${jenis_barang}, ${jenis_kendaraan}, ${plat_kendaraan}, ${deskripsi}, ${kode_pos})
+      INSERT INTO packages (resi, sender_name, receiver_name, origin, destination, weight, type, payment_method, total_price, user_id, tanggal_kirim, no_telepon, jenis_barang, jenis_kendaraan, plat_kendaraan, deskripsi, kode_pos, alamat)
+      VALUES (${resi}, ${sender_name}, ${receiver_name}, ${origin}, ${destination}, ${weight}, ${type}, ${payment_method}, ${total_price}, ${user_id}, ${tanggal_kirim}, ${no_telepon}, ${jenis_barang}, ${jenis_kendaraan}, ${plat_kendaraan}, ${deskripsi}, ${kode_pos}, ${alamat})
       RETURNING *
     `;
     
@@ -692,6 +692,56 @@ export async function fetchDailyPackageVolume(days: number = 7) {
         return rowDate === dateStr;
       });
       result.push({ date: dateStr, count: found ? Number(found.count) : 0 });
+    }
+    return result;
+  } catch (error) {
+    console.error('Database Error:', error);
+    return [];
+  }
+}
+
+export async function fetchDailyPackageVolumeByStatus(days: number = 7) {
+  try {
+    const rows = await sql`
+      SELECT 
+        DATE_TRUNC('day', created_at AT TIME ZONE 'Asia/Jakarta') AS day,
+        status,
+        COUNT(*) AS count
+      FROM packages
+      WHERE created_at >= NOW() - INTERVAL '${sql.unsafe(String(days))} days'
+      GROUP BY 1, 2
+      ORDER BY 1 ASC
+    `;
+
+    const result: { date: string; sukses: number; proses: number; batal: number }[] = [];
+    const now = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = toLocalYYYYMMDD(d);
+      
+      const dayRows = rows.filter((r: any) => {
+        const rowDate = toLocalYYYYMMDD(new Date(r.day));
+        return rowDate === dateStr;
+      });
+
+      let sukses = 0;
+      let proses = 0;
+      let batal = 0;
+
+      dayRows.forEach((r: any) => {
+        const status = r.status;
+        const count = Number(r.count);
+        if (status === 'Selesai') {
+          sukses += count;
+        } else if (status === 'Dibatalkan') {
+          batal += count;
+        } else {
+          proses += count;
+        }
+      });
+
+      result.push({ date: dateStr, sukses, proses, batal });
     }
     return result;
   } catch (error) {

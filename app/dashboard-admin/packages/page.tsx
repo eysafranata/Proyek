@@ -39,6 +39,12 @@ function StatusBadge({ status }: { status: string }) {
         <TruckIcon className="w-3.5 h-3.5" /> Dalam Perjalanan
       </span>
     );
+  if (status === "Dibatalkan")
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border bg-red-100 text-red-700 border-red-200">
+        <XMarkIcon className="w-3.5 h-3.5" /> Dibatalkan
+      </span>
+    );
   return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border bg-blue-100 text-blue-700 border-blue-200">
       <ClockIcon className="w-3.5 h-3.5" /> {status}
@@ -65,7 +71,7 @@ export default function KelolaPaketPage() {
   const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
-  const [deletingPackage, setDeletingPackage] = useState<any | null>(null);
+  const [cancellingPackage, setCancellingPackage] = useState<any | null>(null);
 
   const [editingPackage, setEditingPackage] = useState<any | null>(null);
   const [editFormData, setEditFormData] = useState({
@@ -159,15 +165,15 @@ export default function KelolaPaketPage() {
     }
   };
 
-  const confirmDeletePackage = async (id: string) => {
+  const confirmCancelPackage = async (id: string) => {
     setLoadingIds((prev) => ({ ...prev, [id]: true }));
-    const result = await deletePackage(id);
+    const result = await updatePackageStatus(id, "Dibatalkan");
     setLoadingIds((prev) => ({ ...prev, [id]: false }));
 
     if (result.success) {
       loadPackages();
     } else {
-      alert(result.error || "Gagal menghapus paket.");
+      alert(result.error || "Gagal membatalkan paket.");
     }
   };
 
@@ -262,6 +268,7 @@ export default function KelolaPaketPage() {
               <option value="Dalam Pengiriman">Dalam Pengiriman</option>
               <option value="Dalam Perjalanan">Dalam Perjalanan</option>
               <option value="Selesai">Selesai</option>
+              <option value="Dibatalkan">Dibatalkan</option>
             </select>
           </div>
         </div>
@@ -366,6 +373,10 @@ export default function KelolaPaketPage() {
                           <span className="text-emerald-600 font-bold text-xs flex items-center gap-1.5">
                             <CheckCircleIcon className="w-4 h-4" /> Sudah Selesai
                           </span>
+                        ) : pkg.status === "Dibatalkan" ? (
+                          <span className="text-red-600 font-bold text-xs flex items-center gap-1.5">
+                            <XMarkIcon className="w-4 h-4" /> Sudah Dibatalkan
+                          </span>
                         ) : (
                           <div className="flex flex-col gap-2">
                             <button
@@ -385,11 +396,11 @@ export default function KelolaPaketPage() {
                               </button>
                             )}
                             <button
-                              onClick={() => setDeletingPackage(pkg)}
+                              onClick={() => setCancellingPackage(pkg)}
                               className="px-3 py-2 rounded-xl text-[11px] font-extrabold bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm w-full border border-red-100 mt-1"
                             >
-                              <TrashIcon className="w-3.5 h-3.5" />
-                              Hapus
+                              <XMarkIcon className="w-3.5 h-3.5" />
+                              Batalkan
                             </button>
                           </div>
                         )}
@@ -435,6 +446,7 @@ export default function KelolaPaketPage() {
                   <option value="Dalam Pengiriman">Dalam Pengiriman</option>
                   <option value="Dalam Perjalanan">Dalam Perjalanan</option>
                   <option value="Selesai">Selesai</option>
+                  <option value="Dibatalkan">Dibatalkan</option>
                 </select>
               </div>
 
@@ -518,37 +530,37 @@ export default function KelolaPaketPage() {
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
-      {deletingPackage && (
+      {/* Confirm Cancel Modal */}
+      {cancellingPackage && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
           <div 
             className="absolute inset-0 bg-[#0c5132]/20 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setDeletingPackage(null)}
+            onClick={() => setCancellingPackage(null)}
           ></div>
           <div className="bg-white rounded-[32px] w-full max-w-sm shadow-2xl relative z-10 overflow-hidden p-6 md:p-8 text-center animate-in zoom-in-95 duration-200">
             <div className="mx-auto w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-5 border border-red-100">
-              <TrashIcon className="w-8 h-8 animate-bounce" />
+              <XMarkIcon className="w-8 h-8 text-red-500 animate-pulse" />
             </div>
-            <h3 className="text-xl font-extrabold text-[#0c5132] mb-3">Konfirmasi Hapus</h3>
+            <h3 className="text-xl font-extrabold text-[#0c5132] mb-3">Konfirmasi Batal</h3>
             <p className="text-sm text-gray-500 font-medium mb-6 leading-relaxed">
-              Apakah Anda yakin ingin menghapus data paket dengan resi <span className="font-extrabold text-red-500">"{deletingPackage.resi}"</span> (Pengirim: {deletingPackage.sender_name})? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin membatalkan paket dengan resi <span className="font-extrabold text-red-500">"{cancellingPackage.resi}"</span> (Pengirim: {cancellingPackage.sender_name})? Status paket akan diubah menjadi <span className="font-extrabold text-red-500">"Dibatalkan"</span>.
             </p>
             <div className="flex gap-3">
               <button 
-                onClick={() => setDeletingPackage(null)}
+                onClick={() => setCancellingPackage(null)}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-bold transition-all text-sm"
               >
-                Batal
+                Kembali
               </button>
               <button 
                 onClick={async () => {
-                  const id = deletingPackage.id;
-                  setDeletingPackage(null);
-                  await confirmDeletePackage(id);
+                  const id = cancellingPackage.id;
+                  setCancellingPackage(null);
+                  await confirmCancelPackage(id);
                 }}
                 className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all text-sm flex items-center justify-center gap-1.5"
               >
-                Hapus
+                Batalkan Paket
               </button>
             </div>
           </div>

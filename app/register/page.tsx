@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
 import { registerUser } from '@/app/lib/actions';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -21,6 +22,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [errors, setErrors] = useState<{
     name?: string;
@@ -110,10 +113,10 @@ export default function RegisterPage() {
         <div className="bg-[#48cc81] p-8 sm:p-10 rounded-3xl w-full max-w-[480px] shadow-lg relative">
           
           <h2 className="text-[28px] font-extrabold text-gray-900 text-center mb-2 tracking-tight">
-            Create your account
+            Buat Akun Baru
           </h2>
           <p className="text-gray-800 text-center text-sm font-medium mb-8 px-4 opacity-90">
-            Join the elite network of kinetic curators.
+            Bergabunglah dengan jaringan pengiriman terpercaya kami.
           </p>
 
           <form onSubmit={handleRegister} className="space-y-4">
@@ -121,12 +124,12 @@ export default function RegisterPage() {
             {/* Username Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                Full Name <span className="text-red-700">*</span>
+                Nama Lengkap <span className="text-red-700">*</span>
               </label>
               <input
                 type="text"
                 name="name"
-                placeholder="Full Name"
+                placeholder="Nama Lengkap"
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
@@ -146,12 +149,12 @@ export default function RegisterPage() {
             {/* Email Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                Email Address <span className="text-red-700">*</span>
+                Alamat Email <span className="text-red-700">*</span>
               </label>
               <input
                 type="email"
                 name="email"
-                placeholder="name@example.com"
+                placeholder="nama@contoh.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -171,7 +174,7 @@ export default function RegisterPage() {
             {/* Phone Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                Phone Number <span className="text-red-700">*</span>
+                Nomor Telepon <span className="text-red-700">*</span>
               </label>
               <input
                 type="text"
@@ -222,42 +225,68 @@ export default function RegisterPage() {
             <div className="flex gap-4 flex-col sm:flex-row">
               <div className="flex-1">
                 <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Password <span className="text-red-700">*</span>
+                  Kata Sandi <span className="text-red-700">*</span>
                 </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setErrors({ ...errors, password: undefined });
-                  }}
-                  className={`w-full px-4 py-3 rounded-2xl outline-none border-2 ring-0 transition-colors ${
-                    errors.password 
-                      ? 'border-red-500 focus:border-red-500 text-red-900' 
-                      : 'border-transparent focus:border-white/50 text-gray-800'
-                  } bg-[#f8fcf9] shadow-sm`}
-                />
+                <div className="relative group">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors({ ...errors, password: undefined });
+                    }}
+                    className={`w-full pl-4 pr-10 py-3 rounded-2xl outline-none border-2 ring-0 transition-colors ${
+                      errors.password 
+                        ? 'border-red-500 focus:border-red-500 text-red-900' 
+                        : 'border-transparent focus:border-white/50 text-gray-800'
+                    } bg-[#f8fcf9] shadow-sm`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1">
                 <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Confirm Password <span className="text-red-700">*</span>
+                  Konfirmasi Kata Sandi <span className="text-red-700">*</span>
                 </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setErrors({ ...errors, password: undefined });
-                  }}
-                  className={`w-full px-4 py-3 rounded-2xl outline-none border-2 ring-0 transition-colors ${
-                    errors.password 
-                      ? 'border-red-500 focus:border-red-500 text-red-900' 
-                      : 'border-transparent focus:border-white/50 text-gray-800'
-                  } bg-[#f8fcf9] shadow-sm`}
-                />
+                <div className="relative group">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setErrors({ ...errors, password: undefined });
+                    }}
+                    className={`w-full pl-4 pr-10 py-3 rounded-2xl outline-none border-2 ring-0 transition-colors ${
+                      errors.password 
+                        ? 'border-red-500 focus:border-red-500 text-red-900' 
+                        : 'border-transparent focus:border-white/50 text-gray-800'
+                    } bg-[#f8fcf9] shadow-sm`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
             {errors.password && (
@@ -273,9 +302,8 @@ export default function RegisterPage() {
             </button>
           </form>
 
-
           <p className="text-center text-sm font-medium text-gray-900 mt-10">
-            Already have an account? <Link href="/login" className="font-extrabold hover:text-black">Sign In</Link>
+            Sudah punya akun? <Link href="/login" className="font-extrabold hover:text-black">Masuk</Link>
           </p>
         </div>
       </div>

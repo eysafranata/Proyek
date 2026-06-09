@@ -40,6 +40,7 @@ export default function AddPackagePage() {
     plat_kendaraan: '',
     deskripsi: '',
     kode_pos: '',
+    alamat: '',
     total_price: '',
   });
 
@@ -129,6 +130,13 @@ export default function AddPackagePage() {
         return next;
       });
     }
+    if (name === 'alamat') {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.alamat;
+        return next;
+      });
+    }
   };
 
   const validate = () => {
@@ -146,7 +154,7 @@ export default function AddPackagePage() {
       newErrors.no_telepon = true;
     } else {
       const phoneDigits = formData.no_telepon.replace(/\D/g, '');
-      if (phoneDigits.length < 10) {
+      if (phoneDigits.length < 10 || phoneDigits.length > 12) {
         newErrors.no_telepon_length = true;
       }
     }
@@ -156,8 +164,10 @@ export default function AddPackagePage() {
     
     if (!formData.kode_pos) {
       newErrors.kode_pos = true;
-    } else if (!/^\d{4}$/.test(formData.kode_pos)) {
-      newErrors.kode_pos_format = true;
+    }
+    
+    if (!formData.alamat) {
+      newErrors.alamat = true;
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -299,6 +309,7 @@ export default function AddPackagePage() {
                   name="no_telepon"
                   placeholder="Contoh: 081234567890"
                   value={formData.no_telepon}
+                  maxLength={12}
                   onChange={handleInputChange}
                   className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.no_telepon || errors.no_telepon_length ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
@@ -306,7 +317,7 @@ export default function AddPackagePage() {
                   <p className="text-red-500 text-xs mt-1 font-bold">Nomor telepon wajib diisi</p>
                 )}
                 {errors.no_telepon_length && (
-                  <p className="text-red-500 text-xs mt-1 font-bold">Nomor telepon minimal terdiri dari 10 digit</p>
+                  <p className="text-red-500 text-xs mt-1 font-bold">Nomor telepon harus terdiri dari 10 sampai 12 digit</p>
                 )}
               </div>
               <div>
@@ -351,17 +362,29 @@ export default function AddPackagePage() {
                 <input 
                   type="text" 
                   name="kode_pos"
-                  placeholder="Contoh: 1234"
-                  maxLength={4}
+                  placeholder="Contoh: 12345"
                   value={formData.kode_pos}
                   onChange={handleInputChange}
-                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.kode_pos || errors.kode_pos_format ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.kode_pos ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
                 {errors.kode_pos && (
                   <p className="text-red-500 text-xs mt-1 font-bold">Kode pos wajib diisi</p>
                 )}
-                {errors.kode_pos_format && (
-                  <p className="text-red-500 text-xs mt-1 font-bold">Kode pos harus berupa 4 digit angka</p>
+              </div>
+
+              {/* Alamat Penerima */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-bold text-[#0c5132] mb-2">Alamat Penerima</label>
+                <input 
+                  type="text" 
+                  name="alamat"
+                  placeholder="Contoh: Jl. Diponegoro No. 23, RT 02/RW 03"
+                  value={formData.alamat}
+                  onChange={handleInputChange}
+                  className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.alamat ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
+                />
+                {errors.alamat && (
+                  <p className="text-red-500 text-xs mt-1 font-bold">Alamat wajib diisi</p>
                 )}
               </div>
 
@@ -545,6 +568,9 @@ export default function AddPackagePage() {
                     <div className="flex flex-col">
                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Penerima</span>
                        <span className="font-extrabold text-[#0c5132] text-sm leading-tight">{successData.receiver_name} <span className="text-gray-300 font-medium ml-1">· {successData.destination}</span></span>
+                       {successData.alamat && (
+                          <span className="text-xs text-gray-500 mt-1 block leading-normal">{successData.alamat} {successData.kode_pos && `(Kode Pos: ${successData.kode_pos})`}</span>
+                       )}
                     </div>
                  </div>
               </div>
@@ -606,6 +632,7 @@ export default function AddPackagePage() {
                           plat_kendaraan: '',
                           deskripsi: '',
                           kode_pos: '',
+                          alamat: '',
                           total_price: '',
                         });
                         const newResi = `CKL${Date.now().toString().slice(-7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;

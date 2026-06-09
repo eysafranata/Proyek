@@ -40,6 +40,7 @@ function LacakPaketContent() {
   const [notFound, setNotFound] = useState(false);
   const [myPackages, setMyPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
+  const [resiError, setResiError] = useState('');
 
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -64,7 +65,13 @@ function LacakPaketContent() {
   const handleLacak = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanResi = resiInput.trim();
-    if (!cleanResi) return;
+    if (!cleanResi) {
+      setResiError('Nomor resi wajib diisi!');
+      setShowResult(false);
+      setNotFound(false);
+      return;
+    }
+    setResiError('');
 
     try {
       const pkg = await fetchPackageByResi(cleanResi);
@@ -126,7 +133,10 @@ function LacakPaketContent() {
               type="text"
               placeholder="Masukkan Nomor Resi"
               value={resiInput}
-              onChange={(e) => setResiInput(e.target.value)}
+              onChange={(e) => {
+                setResiInput(e.target.value);
+                if (resiError) setResiError('');
+              }}
               className="flex-1 w-full py-3 md:py-4 px-4 bg-transparent outline-none border-none focus:ring-0 text-[#1db372] placeholder-gray-400 font-bold md:text-lg"
             />
             {/* Tombol Lacak selalu berada di dalam input field untuk tampilan desktop */}
@@ -146,6 +156,12 @@ function LacakPaketContent() {
             Lacak <span>→</span>
           </button>
         </form>
+
+        {resiError && (
+          <div className="max-w-3xl mx-auto text-red-500 font-bold text-sm mb-6 px-5 py-3.5 bg-red-50 rounded-[20px] border border-red-100 flex items-center gap-2">
+            ⚠️ {resiError}
+          </div>
+        )}
 
         {/* Daftar Paket Saya */}
         {!showResult && myPackages.length > 0 && (
@@ -341,7 +357,9 @@ function LacakPaketContent() {
                         {selectedPackage ? selectedPackage.receiver_name : 'Bapak Ridwan Kamil'}
                       </p>
                       <p className="text-[13px] text-gray-500 mt-0.5 leading-relaxed">
-                        {selectedPackage ? selectedPackage.destination : 'Jl. Dago No. 45, Bandung, Jawa Barat'}
+                        {selectedPackage 
+                          ? (selectedPackage.alamat ? `${selectedPackage.alamat}, ${selectedPackage.destination}` : selectedPackage.destination) 
+                          : 'Jl. Dago No. 45, Bandung, Jawa Barat'}
                       </p>
                     </div>
                   </div>

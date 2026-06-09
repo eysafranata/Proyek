@@ -10,13 +10,14 @@ import {
   TruckIcon,
   CheckCircleIcon,
   ChartBarIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline';
 import { 
   getUserStats, 
   fetchLaporanStats, 
-  fetchDailyPackageVolume, 
-  fetchDailyUserRegistration 
+  fetchDailyPackageVolumeByStatus, 
+  fetchDailyRevenue 
 } from '@/app/lib/actions';
 import AdminSidebar from '@/app/ui/dashboard/admin-sidebar';
 
@@ -24,6 +25,16 @@ const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
 });
+
+function formatRupiahShort(val: number): string {
+  if (val >= 1000000) {
+    return 'Rp ' + (val / 1000000).toFixed(1) + ' jt';
+  }
+  if (val >= 1000) {
+    return 'Rp ' + (val / 1000).toFixed(0) + ' k';
+  }
+  return 'Rp ' + val;
+}
 
 function formatDateLabel(dateStr: string): string {
   if (!dateStr) return '';
@@ -64,17 +75,17 @@ export default function DashboardAdmin() {
     dalamProses: 0,
     selesai: 0,
   });
-  const [packageVolume, setPackageVolume] = useState<{ date: string; count: number }[]>([]);
-  const [userRegistration, setUserRegistration] = useState<{ date: string; count: number }[]>([]);
+  const [packageVolumeByStatus, setPackageVolumeByStatus] = useState<{ date: string; sukses: number; proses: number; batal: number }[]>([]);
+  const [dailyRevenue, setDailyRevenue] = useState<{ date: string; revenue: number }[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [userStats, laporanStats, vol, reg] = await Promise.all([
+        const [userStats, laporanStats, volByStatus, rev] = await Promise.all([
           getUserStats(),
           fetchLaporanStats(),
-          fetchDailyPackageVolume(7),
-          fetchDailyUserRegistration(7),
+          fetchDailyPackageVolumeByStatus(7),
+          fetchDailyRevenue(7),
         ]);
         setStats({
           totalCustomers: userStats.totalCustomers,
@@ -82,8 +93,8 @@ export default function DashboardAdmin() {
           dalamProses: laporanStats.dalamProses,
           selesai: laporanStats.selesai,
         });
-        setPackageVolume(vol);
-        setUserRegistration(reg);
+        setPackageVolumeByStatus(volByStatus);
+        setDailyRevenue(rev);
       } catch (err) {
         console.error(err);
       }
@@ -98,17 +109,43 @@ export default function DashboardAdmin() {
   const SVG_W = 800;
   const SVG_H = 180;
 
-  // Chart 1 (Package Volume)
-  const volValues = packageVolume.map((d) => d.count);
-  const maxVol = Math.max(...volValues, 1);
-  const { line: volLine, fill: volFill } = buildSmoothPath(volValues, SVG_W, SVG_H, maxVol);
+  // Chart 1 (Package Volume by Status)
+  const maxVol = Math.max(
+    ...packageVolumeByStatus.map(d => Math.max(d.sukses, d.proses, d.batal)),
+    1
+  );
+  
+  const { line: suksesLine, fill: suksesFill } = buildSmoothPath(
+    packageVolumeByStatus.map(d => d.sukses),
+    SVG_W,
+    SVG_H,
+    maxVol
+  );
+  const { line: prosesLine, fill: prosesFill } = buildSmoothPath(
+    packageVolumeByStatus.map(d => d.proses),
+    SVG_W,
+    SVG_H,
+    maxVol
+  );
+  const { line: batalLine, fill: batalFill } = buildSmoothPath(
+    packageVolumeByStatus.map(d => d.batal),
+    SVG_W,
+    SVG_H,
+    maxVol
+  );
+  
   const volYLabels = [maxVol, Math.round(maxVol * 0.75), Math.round(maxVol * 0.5), Math.round(maxVol * 0.25), 0];
 
-  // Chart 2 (User Registration)
-  const regValues = userRegistration.map((d) => d.count);
-  const maxReg = Math.max(...regValues, 1);
-  const { line: regLine, fill: regFill } = buildSmoothPath(regValues, SVG_W, SVG_H, maxReg);
-  const regYLabels = [maxReg, Math.round(maxReg * 0.75), Math.round(maxReg * 0.5), Math.round(maxReg * 0.25), 0];
+  // Chart 2 (Daily Revenue Bar Chart)
+  const revValues = dailyRevenue.map((d) => d.revenue);
+  const maxRev = Math.max(...revValues, 100000);
+  const revYLabels = [
+    formatRupiahShort(maxRev),
+    formatRupiahShort(maxRev * 0.75),
+    formatRupiahShort(maxRev * 0.5),
+    formatRupiahShort(maxRev * 0.25),
+    'Rp 0'
+  ];
 
   return (
     <div className={`min-h-screen bg-[#f4fcf7] pb-10 ${poppins.className}`}>
@@ -198,22 +235,37 @@ export default function DashboardAdmin() {
         <div className="flex flex-col gap-6 md:gap-8 mb-8">
           {/* Chart 1: Tren Pengiriman */}
           <div className="bg-white rounded-[24px] md:rounded-[32px] p-6 md:p-8 shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
               <div className="flex items-center gap-3">
                 <CubeIcon className="w-5 h-5 md:w-6 md:h-6 text-[#24a173]" strokeWidth={2} />
                 <h3 className="font-extrabold text-[#0c5132] text-sm md:text-lg">Tren Pengiriman (7 Hari Terakhir)</h3>
               </div>
-              <span className="bg-[#e6fce5] text-[#24a173] text-[10px] md:text-xs font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm border border-emerald-50">
-                <span className="w-2 h-2 bg-[#24a173] rounded-full inline-block animate-pulse"></span>
-                Aktif
-              </span>
+              <div className="flex items-center gap-4 flex-wrap text-xs font-bold">
+                <span className="flex items-center gap-1.5 text-[#24a173]">
+                  <span className="w-3 h-3 bg-[#24a173] rounded-full"></span> Sukses
+                </span>
+                <span className="flex items-center gap-1.5 text-[#f59e0b]">
+                  <span className="w-3 h-3 bg-[#f59e0b] rounded-full"></span> Proses
+                </span>
+                <span className="flex items-center gap-1.5 text-[#ef4444]">
+                  <span className="w-3 h-3 bg-[#ef4444] rounded-full"></span> Batal
+                </span>
+              </div>
             </div>
             <div className="w-full h-[200px] md:h-[260px] relative">
               <svg viewBox="0 0 800 200" className="w-full h-full preserve-3d overflow-visible" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#24a173" stopOpacity={0.25}/>
+                    <stop offset="5%" stopColor="#24a173" stopOpacity={0.15}/>
                     <stop offset="95%" stopColor="#24a173" stopOpacity={0.01}/>
+                  </linearGradient>
+                  <linearGradient id="colorOrange" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.01}/>
+                  </linearGradient>
+                  <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01}/>
                   </linearGradient>
                 </defs>
                 <line x1="0" y1="180" x2="800" y2="180" stroke="#f1f5f9" strokeWidth="1.5" />
@@ -222,12 +274,21 @@ export default function DashboardAdmin() {
                 <line x1="0" y1="45" x2="800" y2="45" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 <line x1="0" y1="0" x2="800" y2="0" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 
-                {volFill && <path d={volFill} fill="url(#colorGreen)" />}
-                {volLine && <path d={volLine} fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                {/* Sukses */}
+                {suksesFill && <path d={suksesFill} fill="url(#colorGreen)" />}
+                {suksesLine && <path d={suksesLine} fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                
+                {/* Proses */}
+                {prosesFill && <path d={prosesFill} fill="url(#colorOrange)" />}
+                {prosesLine && <path d={prosesLine} fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                
+                {/* Batal */}
+                {batalFill && <path d={batalFill} fill="url(#colorRed)" />}
+                {batalLine && <path d={batalLine} fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
               </svg>
               {/* x-axis labels */}
               <div className="absolute bottom-0 left-0 w-full flex justify-between pt-2 px-1 text-[10px] md:text-xs text-gray-400 font-medium tracking-tighter sm:tracking-normal">
-                {packageVolume.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
+                {packageVolumeByStatus.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
               </div>
               <div className="absolute top-0 left-0 h-full flex flex-col justify-between pb-[18px] pr-2 text-[10px] md:text-xs text-gray-400 font-medium -translate-x-full pr-3">
                 {volYLabels.map((v, i) => <span key={i}>{v}</span>)}
@@ -235,24 +296,24 @@ export default function DashboardAdmin() {
             </div>
           </div>
 
-          {/* Chart 2: Pendaftaran Pengguna Baru */}
+          {/* Chart 2: Pendapatan Harian */}
           <div className="bg-white rounded-[24px] md:rounded-[32px] p-6 md:p-8 shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
-                <UsersIcon className="w-5 h-5 md:w-6 md:h-6 text-[#4182FF]" strokeWidth={2} />
-                <h3 className="font-extrabold text-[#0c5132] text-sm md:text-lg">Pendaftaran Pengguna Baru (7 Hari Terakhir)</h3>
+                <BanknotesIcon className="w-5 h-5 md:w-6 md:h-6 text-[#1b8555]" strokeWidth={2} />
+                <h3 className="font-extrabold text-[#0c5132] text-sm md:text-lg">Pendapatan Harian (7 Hari Terakhir)</h3>
               </div>
-              <span className="bg-[#eef4fc] text-[#4182FF] text-[10px] md:text-xs font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm border border-blue-50">
-                <span className="w-2 h-2 bg-[#4182FF] rounded-full inline-block animate-pulse"></span>
+              <span className="bg-[#e6fce5] text-[#1b8555] text-[10px] md:text-xs font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-2 shadow-sm border border-emerald-50">
+                <span className="w-2 h-2 bg-[#1b8555] rounded-full inline-block animate-pulse"></span>
                 Aktif
               </span>
             </div>
             <div className="w-full h-[200px] md:h-[260px] relative">
               <svg viewBox="0 0 800 200" className="w-full h-full preserve-3d overflow-visible" preserveAspectRatio="none">
                 <defs>
-                  <linearGradient id="colorBlue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4182FF" stopOpacity={0.25}/>
-                    <stop offset="95%" stopColor="#4182FF" stopOpacity={0.01}/>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1b8555" stopOpacity={0.95}/>
+                    <stop offset="95%" stopColor="#24a173" stopOpacity={0.7}/>
                   </linearGradient>
                 </defs>
                 <line x1="0" y1="180" x2="800" y2="180" stroke="#f1f5f9" strokeWidth="1.5" />
@@ -261,14 +322,41 @@ export default function DashboardAdmin() {
                 <line x1="0" y1="45" x2="800" y2="45" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 <line x1="0" y1="0" x2="800" y2="0" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
                 
-                {regFill && <path d={regFill} fill="url(#colorBlue)" />}
-                {regLine && <path d={regLine} fill="none" stroke="#4182FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                {dailyRevenue.map((d, i) => {
+                  const colW = 800 / 7;
+                  const w = 44;
+                  const x = i * colW + (colW - w) / 2;
+                  const barH = maxRev > 0 ? (d.revenue / maxRev) * 160 : 0;
+                  const y = 180 - barH;
+                  return (
+                    <g key={i}>
+                      <rect 
+                        x={x}
+                        y={y}
+                        width={w}
+                        height={barH}
+                        fill="url(#colorRevenue)"
+                        rx={6}
+                      />
+                      {d.revenue > 0 && (
+                        <text
+                          x={x + w / 2}
+                          y={y - 6}
+                          textAnchor="middle"
+                          className="text-[9px] md:text-[11px] font-extrabold fill-[#0b5131]"
+                        >
+                          {formatRupiahShort(d.revenue)}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
               </svg>
               <div className="absolute bottom-0 left-0 w-full flex justify-between pt-2 px-1 text-[10px] md:text-xs text-gray-400 font-medium tracking-tighter sm:tracking-normal">
-                {userRegistration.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
+                {dailyRevenue.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
               </div>
-              <div className="absolute top-0 left-0 h-full flex flex-col justify-between pb-[18px] pr-2 text-[10px] md:text-xs text-gray-400 font-medium -translate-x-full pr-3">
-                {regYLabels.map((v, i) => <span key={i}>{v}</span>)}
+              <div className="absolute top-0 left-0 h-full flex flex-col justify-between pb-[18px] pr-2 text-[10px] md:text-xs text-gray-400 font-medium -translate-x-full pr-3 whitespace-nowrap">
+                {revYLabels.map((v, i) => <span key={i}>{v}</span>)}
               </div>
             </div>
           </div>
