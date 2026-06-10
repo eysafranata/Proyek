@@ -33,6 +33,13 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // 3. Proteksi Halaman Lacak Paket (Harus Login)
+  if (lowerPath === '/lacak-paket' || lowerPath.startsWith('/lacak-paket/')) {
+    if (!userId) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
@@ -51,6 +58,10 @@ export const config = {
     '/Pelanggan',
     '/Admin/:path*',
     '/Pelanggan/:path*',
+    '/lacak-paket',
+    '/Lacak-Paket',
+    '/lacak-paket/:path*',
+    '/Lacak-Paket/:path*',
   ],
 };
 

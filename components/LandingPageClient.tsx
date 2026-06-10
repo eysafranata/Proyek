@@ -84,7 +84,7 @@ export default function LandingPageClient() {
                 <Link href="/register" className="bg-emerald-500 text-white px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-emerald-600 transition-colors">
                   Mulai Sekarang <span>→</span>
                 </Link>
-                <Link href="/lacak-paket" className="border border-emerald-200 bg-emerald-50/50 text-emerald-700 px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-emerald-100 transition-colors">
+                <Link href="/login" className="border border-emerald-200 bg-emerald-50/50 text-emerald-700 px-6 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-emerald-100 transition-colors">
                   📦 Lacak Paket
                 </Link>
               </div>
