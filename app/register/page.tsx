@@ -50,6 +50,12 @@ export default function RegisterPage() {
     if (!phone.trim()) {
       newErrors.phone = "Nomor telepon harus diisi";
       isValid = false;
+    } else {
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length < 10 || phoneDigits.length > 12) {
+        newErrors.phone = "Nomor telepon harus terdiri dari 10 sampai 12 digit";
+        isValid = false;
+      }
     }
 
     if (!kotaAsal.trim()) {
@@ -181,6 +187,7 @@ export default function RegisterPage() {
                 name="phone"
                 placeholder="0812xxxx"
                 value={phone}
+                maxLength={12}
                 onChange={(e) => {
                   setPhone(e.target.value.replace(/\D/g, ''));
                   setErrors({ ...errors, phone: undefined });

@@ -77,6 +77,11 @@ export async function registerUser(formData: FormData) {
   const password = formData.get('password') as string;
   const kota_asal = formData.get('kota_asal') as string;
 
+  const phoneDigits = phone.replace(/\D/g, '');
+  if (phoneDigits.length < 10 || phoneDigits.length > 12) {
+    return { error: 'Nomor telepon harus terdiri dari 10 sampai 12 digit.' };
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
@@ -106,6 +111,11 @@ export async function updateProfile(id: string, formData: FormData) {
 
   if (!name || !name.trim() || !email || !email.trim() || !phone || !phone.trim() || !kota_asal || !kota_asal.trim()) {
     return { error: true, message: 'Error: Semua kolom profil wajib diisi!' };
+  }
+
+  const phoneDigits = phone.replace(/\D/g, '');
+  if (phoneDigits.length < 10 || phoneDigits.length > 12) {
+    return { error: true, message: 'Error: Nomor telepon harus terdiri dari 10 sampai 12 digit.' };
   }
 
   try {

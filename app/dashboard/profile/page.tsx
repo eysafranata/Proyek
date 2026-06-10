@@ -125,6 +125,12 @@ export default function ProfilePage() {
       return;
     }
 
+    const phoneDigits = editData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 12) {
+      showError('Nomor telepon harus terdiri dari 10 sampai 12 digit.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('name', editData.name);
     formData.append('email', editData.email);
@@ -356,6 +362,7 @@ export default function ProfilePage() {
                 <input 
                   type="text" 
                   value={editData.phone}
+                  maxLength={12}
                   onChange={(e) => setEditData({...editData, phone: e.target.value.replace(/\D/g, '')})}
                   className="w-full bg-[#f4fcf7] border-2 border-emerald-100/50 rounded-2xl px-6 py-4 outline-none focus:border-emerald-400 transition-colors font-bold text-gray-800"
                 />
