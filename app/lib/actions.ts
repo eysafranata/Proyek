@@ -137,6 +137,10 @@ export async function changePassword(id: string, formData: FormData) {
   const newPassword = formData.get('newPassword') as string;
   const confirmPassword = formData.get('confirmPassword') as string;
 
+  if (!currentPassword) {
+    return { error: 'current', message: 'Password saat ini wajib diisi' };
+  }
+
   if (newPassword.length < 8) {
     return { error: 'new', message: 'Password baru harus minimal 8 karakter' };
   }

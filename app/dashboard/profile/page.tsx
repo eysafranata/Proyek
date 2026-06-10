@@ -151,8 +151,30 @@ export default function ProfilePage() {
     e.preventDefault();
     setPassErrors({});
     
-    if (passwordData.newPassword.length < 8) {
-      setPassErrors({ new: 'Password baru harus minimal 8 karakter' });
+    const newErrors: any = {};
+    let hasError = false;
+
+    if (!passwordData.currentPassword) {
+      newErrors.current = 'Password saat ini wajib diisi';
+      hasError = true;
+    }
+    if (!passwordData.newPassword) {
+      newErrors.new = 'Password baru wajib diisi';
+      hasError = true;
+    } else if (passwordData.newPassword.length < 8) {
+      newErrors.new = 'Password baru harus minimal 8 karakter';
+      hasError = true;
+    }
+    if (!passwordData.confirmPassword) {
+      newErrors.confirm = 'Konfirmasi password baru wajib diisi';
+      hasError = true;
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      newErrors.confirm = 'Konfirmasi password tidak sesuai';
+      hasError = true;
+    }
+
+    if (hasError) {
+      setPassErrors(newErrors);
       return;
     }
     
@@ -445,7 +467,14 @@ export default function ProfilePage() {
                   type="password" 
                   placeholder="Masukkan password saat ini"
                   value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                  onChange={(e) => {
+                    setPasswordData({...passwordData, currentPassword: e.target.value});
+                    setPassErrors((prev: any) => {
+                      const next = { ...prev };
+                      delete next.current;
+                      return next;
+                    });
+                  }}
                   className={`w-full bg-[#f4fcf7] rounded-2xl px-5 py-4 outline-none border-2 transition-colors font-bold text-gray-800 ${passErrors.current ? 'border-red-400' : 'border-emerald-50 focus:border-emerald-400'}`}
                 />
                 {passErrors.current && <p className="text-red-500 text-[10px] font-bold mt-2 ml-1 uppercase">{passErrors.current}</p>}
@@ -476,7 +505,14 @@ export default function ProfilePage() {
                   type="password" 
                   placeholder="Ketik ulang password baru"
                   value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                  onChange={(e) => {
+                    setPasswordData({...passwordData, confirmPassword: e.target.value});
+                    setPassErrors((prev: any) => {
+                      const next = { ...prev };
+                      delete next.confirm;
+                      return next;
+                    });
+                  }}
                   className={`w-full bg-[#f4fcf7] rounded-2xl px-5 py-4 outline-none border-2 transition-colors font-bold text-gray-800 ${passErrors.confirm ? 'border-red-400' : 'border-emerald-50 focus:border-emerald-400'}`}
                 />
                 {passErrors.confirm && <p className="text-red-500 text-[10px] font-bold mt-2 ml-1 uppercase">{passErrors.confirm}</p>}
