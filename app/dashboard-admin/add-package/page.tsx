@@ -46,6 +46,7 @@ export default function AddPackagePage() {
 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [showErrorBanner, setShowErrorBanner] = useState(false);
+  const [errorBannerMessage, setErrorBannerMessage] = useState('Mohon lengkapi data paket!');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<any | null>(null);
   const [resi, setResi] = useState('');
@@ -89,11 +90,16 @@ export default function AddPackagePage() {
       return;
     }
 
-    let updatedData = { ...formData, [name]: value };
+    let val = value;
+    if (name === 'no_telepon') {
+      val = value.replace(/\D/g, '');
+    }
+
+    let updatedData = { ...formData, [name]: val };
     
     if (name === 'weight' || name === 'type') {
-      const weightNum = parseFloat(name === 'weight' ? value : formData.weight);
-      const currentType = name === 'type' ? value : formData.type;
+      const weightNum = parseFloat(name === 'weight' ? val : formData.weight);
+      const currentType = name === 'type' ? val : formData.type;
       
       if (!isNaN(weightNum)) {
         let pricePerKg = 15000; // Reguler
@@ -111,6 +117,14 @@ export default function AddPackagePage() {
       setErrors(prev => {
         const next = { ...prev };
         delete next[name];
+        return next;
+      });
+    }
+    if (name === 'sender_name') {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.sender_name;
+        delete next.sender_not_found;
         return next;
       });
     }
@@ -172,6 +186,7 @@ export default function AddPackagePage() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setErrorBannerMessage('Mohon lengkapi data paket!');
       setShowErrorBanner(true);
       isValid = false;
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -197,7 +212,12 @@ export default function AddPackagePage() {
     if (result.success) {
       setSuccessData(result.package);
     } else {
-      alert(result.error || 'Terjadi kesalahan saat menyimpan paket.');
+      if (result.error && result.error.includes('tidak terdaftar')) {
+        setErrors(prev => ({ ...prev, sender_name: true, sender_not_found: true }));
+      }
+      setErrorBannerMessage(result.error || 'Terjadi kesalahan saat menyimpan paket.');
+      setShowErrorBanner(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -230,7 +250,7 @@ export default function AddPackagePage() {
           <div className="w-full max-w-3xl mb-8 animate-in slide-in-from-top duration-300">
              <div className="bg-white rounded-2xl shadow-lg border-l-4 border-black p-4 flex items-center gap-4">
                 <ExclamationCircleIcon className="w-6 h-6 text-black" />
-                <span className="font-bold text-gray-800 text-sm md:text-base">Mohon lengkapi data paket!</span>
+                <span className="font-bold text-gray-800 text-sm md:text-base">{errorBannerMessage}</span>
              </div>
           </div>
         )}
@@ -288,6 +308,9 @@ export default function AddPackagePage() {
                   onChange={handleInputChange}
                   className={`w-full px-5 py-4 bg-white border-2 rounded-2xl font-medium transition-all focus:ring-4 focus:ring-emerald-50 focus:outline-none ${errors.sender_name ? 'border-red-300' : 'border-[#e0e7e3] focus:border-[#24a173]'}`}
                 />
+                {errors.sender_not_found && (
+                  <p className="text-red-500 text-xs mt-1 font-bold">Nama pengirim tidak terdaftar di sistem</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-bold text-[#0c5132] mb-2">Nama Penerima</label>

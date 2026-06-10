@@ -14,7 +14,7 @@ const FormSchema = z.object({
   name: z.string().min(1, 'Nama lengkap harus diisi'),
   email: z.string().email('Email tidak valid'),
   phone: z.string().min(1, 'Nomor telepon harus diisi'),
-  password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
+  password: z.string().min(8, 'Kata sandi minimal 8 karakter'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Konfirmasi kata sandi tidak cocok",
@@ -104,8 +104,8 @@ export async function updateProfile(id: string, formData: FormData) {
   const phone = formData.get('phone') as string;
   const kota_asal = formData.get('kota_asal') as string;
 
-  if (!name || !name.trim() || !email || !email.trim()) {
-    return { error: true, message: 'Error: Nama dan Email wajib diisi!' };
+  if (!name || !name.trim() || !email || !email.trim() || !phone || !phone.trim() || !kota_asal || !kota_asal.trim()) {
+    return { error: true, message: 'Error: Semua kolom profil wajib diisi!' };
   }
 
   try {
@@ -126,6 +126,10 @@ export async function changePassword(id: string, formData: FormData) {
   const currentPassword = formData.get('currentPassword') as string;
   const newPassword = formData.get('newPassword') as string;
   const confirmPassword = formData.get('confirmPassword') as string;
+
+  if (newPassword.length < 8) {
+    return { error: 'new', message: 'Password baru harus minimal 8 karakter' };
+  }
 
   if (newPassword !== confirmPassword) {
     return { error: 'confirm', message: 'Konfirmasi password tidak sesuai' };
@@ -803,8 +807,8 @@ export async function resetPassword(userId: string, formData: FormData) {
   if (newPassword !== confirmPassword) {
     return { error: 'Konfirmasi password tidak cocok.' };
   }
-  if (newPassword.length < 6) {
-    return { error: 'Password harus minimal 6 karakter.' };
+  if (newPassword.length < 8) {
+    return { error: 'Password harus minimal 8 karakter.' };
   }
 
   try {

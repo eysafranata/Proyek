@@ -49,8 +49,8 @@ export default function ForgotPasswordPage() {
     setErrorToast('');
     setSuccessToast('');
 
-    if (newPassword.length < 6) {
-      setErrorToast('Password harus minimal 6 karakter.');
+    if (newPassword.length < 8) {
+      setErrorToast('Password harus minimal 8 karakter.');
       return;
     }
     
@@ -166,7 +166,7 @@ export default function ForgotPasswordPage() {
           <>
             <h2 className="text-2xl font-bold text-[#146f42] text-center mb-3">Buat Password Baru</h2>
             <p className="text-gray-500 text-center text-[15px] mb-8">
-              Password baru Anda harus minimal 6 karakter
+              Password baru Anda harus minimal 8 karakter
             </p>
 
             <form onSubmit={handleStep2Submit} className="space-y-5">

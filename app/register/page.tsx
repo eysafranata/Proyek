@@ -182,7 +182,7 @@ export default function RegisterPage() {
                 placeholder="0812xxxx"
                 value={phone}
                 onChange={(e) => {
-                  setPhone(e.target.value);
+                  setPhone(e.target.value.replace(/\D/g, ''));
                   setErrors({ ...errors, phone: undefined });
                 }}
                 className={`w-full px-4 py-3 rounded-2xl outline-none border-2 ring-0 transition-colors ${

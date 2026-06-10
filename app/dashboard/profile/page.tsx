@@ -115,8 +115,13 @@ export default function ProfilePage() {
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!editData.name || !editData.name.trim() || !editData.email || !editData.email.trim()) {
-      showError('Nama dan Email wajib diisi!');
+    if (
+      !editData.name || !editData.name.trim() ||
+      !editData.email || !editData.email.trim() ||
+      !editData.phone || !editData.phone.trim() ||
+      !editData.kota_asal || !editData.kota_asal.trim()
+    ) {
+      showError('Semua kolom profil wajib diisi!');
       return;
     }
 
@@ -139,6 +144,11 @@ export default function ProfilePage() {
   const handlePasswordSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setPassErrors({});
+    
+    if (passwordData.newPassword.length < 8) {
+      setPassErrors({ new: 'Password baru harus minimal 8 karakter' });
+      return;
+    }
     
     const formData = new FormData();
     formData.append('currentPassword', passwordData.currentPassword);
@@ -346,7 +356,7 @@ export default function ProfilePage() {
                 <input 
                   type="text" 
                   value={editData.phone}
-                  onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                  onChange={(e) => setEditData({...editData, phone: e.target.value.replace(/\D/g, '')})}
                   className="w-full bg-[#f4fcf7] border-2 border-emerald-100/50 rounded-2xl px-6 py-4 outline-none focus:border-emerald-400 transition-colors font-bold text-gray-800"
                 />
               ) : (
@@ -438,11 +448,19 @@ export default function ProfilePage() {
                 <label className="block text-xs font-bold text-emerald-700 mb-2 uppercase tracking-widest">Password Baru</label>
                 <input 
                   type="password" 
-                  placeholder="Minimal 6 karakter"
+                  placeholder="Minimal 8 karakter"
                   value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                  className="w-full bg-[#f4fcf7] border-2 border-emerald-50 rounded-2xl px-5 py-4 outline-none focus:border-emerald-400 transition-colors font-bold text-gray-800"
+                  onChange={(e) => {
+                    setPasswordData({...passwordData, newPassword: e.target.value});
+                    setPassErrors((prev: any) => {
+                      const next = { ...prev };
+                      delete next.new;
+                      return next;
+                    });
+                  }}
+                  className={`w-full bg-[#f4fcf7] rounded-2xl px-5 py-4 outline-none border-2 transition-colors font-bold text-gray-800 ${passErrors.new ? 'border-red-400' : 'border-emerald-50 focus:border-emerald-400'}`}
                 />
+                {passErrors.new && <p className="text-red-500 text-[10px] font-bold mt-2 ml-1 uppercase">{passErrors.new}</p>}
               </div>
 
               <div>
