@@ -217,7 +217,7 @@ export async function logoutUser() {
   const cookieStore = await cookies();
   cookieStore.delete('session_user_id');
   cookieStore.delete('session_user_role');
-  redirect('/login');
+  redirect('/');
 }
 
 export async function getCurrentUser() {
