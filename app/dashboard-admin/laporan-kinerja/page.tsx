@@ -53,14 +53,14 @@ function buildSmoothPath(
   if (data.length === 0) return { line: '', fill: '' };
   const padT = 15, padB = 10;
   const h = svgH - padT - padB;
-  const dx = svgW / Math.max(data.length - 1, 1);
+  const colW = svgW / data.length;
   const getY = (v: number) => padT + h - (maxVal > 0 ? (v / maxVal) * h : 0);
-  const pts = data.map((v, i) => ({ x: i * dx, y: getY(v) }));
+  const pts = data.map((v, i) => ({ x: i * colW + colW / 2, y: getY(v) }));
   let line = `M${pts[0].x},${pts[0].y}`;
   for (let i = 1; i < pts.length; i++) {
-    const cx1 = pts[i - 1].x + dx * 0.45;
+    const cx1 = pts[i - 1].x + colW * 0.45;
     const cy1 = pts[i - 1].y;
-    const cx2 = pts[i].x - dx * 0.45;
+    const cx2 = pts[i].x - colW * 0.45;
     const cy2 = pts[i].y;
     line += ` C${cx1},${cy1} ${cx2},${cy2} ${pts[i].x},${pts[i].y}`;
   }
@@ -80,6 +80,8 @@ export default function LaporanKinerja() {
   });
   const [revenueData, setRevenueData] = useState<{ date: string; revenue: number }[]>([]);
   const [volumeData, setVolumeData] = useState<{ date: string; count: number }[]>([]);
+  const [activeRevIndex, setActiveRevIndex] = useState<number | null>(null);
+  const [activeVolIndex, setActiveVolIndex] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -238,10 +240,10 @@ export default function LaporanKinerja() {
               </div>
 
               <div className="relative w-full" style={{ height: 220 }}>
-                <div className="absolute left-0 top-0 h-[180px] flex flex-col justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold w-12 text-right pr-2">
+                <div className="absolute left-0 top-0 h-[180px] flex flex-col justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold w-14 text-right pr-2">
                   {revYLabels.map((l, i) => <span key={i}>{l}</span>)}
                 </div>
-                <div className="absolute left-14 right-0 top-0 h-[180px] border-l border-b border-gray-200 relative">
+                <div className="absolute left-16 right-0 top-0 h-[180px] border-l border-b border-gray-200 relative">
                   <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                     {[0, 1, 2, 3].map((i) => <div key={i} className="w-full border-t border-gray-100 border-dashed h-0" />)}
                     <div className="w-full h-0" />
@@ -259,6 +261,7 @@ export default function LaporanKinerja() {
                       const x = i * colW + (colW - w) / 2;
                       const barH = maxRev > 0 ? (d.revenue / maxRev) * 150 : 0;
                       const y = 180 - barH;
+                      const isActive = activeRevIndex === i;
                       return (
                         <g key={i}>
                           <rect 
@@ -267,9 +270,13 @@ export default function LaporanKinerja() {
                             width={w}
                             height={barH}
                             fill="url(#colorRevenue)"
+                            opacity={activeRevIndex === null || isActive ? 1 : 0.6}
                             rx={6}
+                            className="cursor-pointer transition-all duration-200"
+                            onMouseEnter={() => setActiveRevIndex(i)}
+                            onMouseLeave={() => setActiveRevIndex(null)}
                           />
-                          {d.revenue > 0 && (
+                          {d.revenue > 0 && !isActive && (
                             <text
                               x={x + w / 2}
                               y={y - 6}
@@ -286,6 +293,26 @@ export default function LaporanKinerja() {
                   <div className="absolute -bottom-6 left-0 w-full flex justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold">
                     {revenueData.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
                   </div>
+
+                  {/* Tooltip */}
+                  {activeRevIndex !== null && revenueData[activeRevIndex] && (
+                    <div 
+                      className="absolute bg-slate-900/95 text-white p-3 rounded-2xl shadow-xl border border-slate-800 text-[10px] md:text-xs flex flex-col gap-1.5 z-30 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95 duration-100"
+                      style={{
+                        left: `${(activeRevIndex * (100 / 7)) + (100 / 7) / 2}%`,
+                        top: '0%',
+                        transform: 'translate(-50%, -100%)',
+                        marginTop: '-12px'
+                      }}
+                    >
+                      <p className="font-extrabold text-slate-300 border-b border-slate-700/60 pb-1 mb-1 whitespace-nowrap text-center">
+                        {formatDateLabel(revenueData[activeRevIndex].date)}
+                      </p>
+                      <span className="font-bold text-emerald-400 text-center block whitespace-nowrap">
+                        Rp {revenueData[activeRevIndex].revenue.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex justify-center items-center mt-10 gap-2 text-[10px] font-bold text-[#24a173]">
@@ -307,7 +334,7 @@ export default function LaporanKinerja() {
                 </span>
               </div>
               <div className="relative w-full" style={{ height: 220 }}>
-                <div className="absolute left-0 top-0 h-[180px] flex flex-col justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold w-6 text-right">
+                <div className="absolute left-0 top-0 h-[180px] flex flex-col justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold w-8 text-right pr-2">
                   {[maxVol, Math.round(maxVol * 0.75), Math.round(maxVol * 0.5), Math.round(maxVol * 0.25), 0].map((v, i) => <span key={i}>{v}</span>)}
                 </div>
                 <div className="absolute left-10 right-0 top-0 h-[180px] border-l border-b border-gray-200 relative">
@@ -326,13 +353,41 @@ export default function LaporanKinerja() {
                       {volFill && <path d={volFill} fill="url(#colorVolume)" />}
                       <path d={volLine} fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                       
+                      {/* Guide Line */}
+                      {activeVolIndex !== null && (
+                        <line
+                          x1={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                          y1={0}
+                          x2={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                          y2={180}
+                          stroke="#cbd5e1"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 4"
+                          pointerEvents="none"
+                        />
+                      )}
+                      
+                      {/* Highlight Circle */}
+                      {activeVolIndex !== null && (
+                        <circle
+                          cx={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                          cy={15 + 155 - (maxVol > 0 ? (volumeData[activeVolIndex].count / maxVol) * 155 : 0)}
+                          r={6}
+                          fill="#24a173"
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                          pointerEvents="none"
+                        />
+                      )}
+
+                      {/* Static Circles */}
                       {volumeData.map((d, i) => {
-                        const dx = 800 / Math.max(volumeData.length - 1, 1);
-                        const x = i * dx;
-                        const h = 180 - 15 - 10;
-                        const y = 15 + h - (maxVol > 0 ? (d.count / maxVol) * h : 0);
+                        const colW = 800 / 7;
+                        const x = i * colW + colW / 2;
+                        const y = 15 + 155 - (maxVol > 0 ? (d.count / maxVol) * 155 : 0);
+                        const isHovered = activeVolIndex === i;
                         return (
-                          <g key={i} className="group/point">
+                          <g key={i}>
                             <circle 
                               cx={x} 
                               cy={y} 
@@ -340,24 +395,56 @@ export default function LaporanKinerja() {
                               fill="#24a173" 
                               stroke="#ffffff" 
                               strokeWidth={1.5} 
-                              className="cursor-pointer transition-all duration-200 group-hover/point:r-6" 
+                              opacity={activeVolIndex !== null && !isHovered ? 0.4 : 1}
+                              className="pointer-events-none" 
                             />
-                            <text
-                              x={x}
-                              y={y - 8}
-                              textAnchor="middle"
-                              className="text-[10px] font-extrabold fill-[#0c5132] opacity-0 group-hover/point:opacity-100 transition-opacity pointer-events-none"
-                            >
-                              {d.count}
-                            </text>
                           </g>
+                        );
+                      })}
+
+                      {/* Hover Trigger Rects */}
+                      {volumeData.map((d, i) => {
+                        const colW = 800 / 7;
+                        const x = i * colW;
+                        return (
+                          <rect
+                            key={i}
+                            x={x}
+                            y={0}
+                            width={colW}
+                            height={180}
+                            fill="transparent"
+                            className="cursor-pointer"
+                            onMouseEnter={() => setActiveVolIndex(i)}
+                            onMouseLeave={() => setActiveVolIndex(null)}
+                          />
                         );
                       })}
                     </svg>
                   )}
-                  <div className="absolute -bottom-6 left-0 w-full flex justify-around text-[9px] md:text-[11px] text-gray-400 font-semibold">
+                  <div className="absolute -bottom-6 left-0 w-full flex justify-between text-[9px] md:text-[11px] text-gray-400 font-semibold">
                     {volumeData.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
                   </div>
+
+                  {/* Tooltip */}
+                  {activeVolIndex !== null && volumeData[activeVolIndex] && (
+                    <div 
+                      className="absolute bg-slate-900/95 text-white p-3 rounded-2xl shadow-xl border border-slate-800 text-[10px] md:text-xs flex flex-col gap-1.5 z-30 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95 duration-100"
+                      style={{
+                        left: `${(activeVolIndex * (100 / 7)) + (100 / 7) / 2}%`,
+                        top: '0%',
+                        transform: 'translate(-50%, -100%)',
+                        marginTop: '-12px'
+                      }}
+                    >
+                      <p className="font-extrabold text-slate-300 border-b border-slate-700/60 pb-1 mb-1 whitespace-nowrap text-center">
+                        {formatDateLabel(volumeData[activeVolIndex].date)}
+                      </p>
+                      <span className="font-bold text-emerald-400 text-center block whitespace-nowrap">
+                        Jumlah Paket: {volumeData[activeVolIndex].count}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex justify-center items-center mt-10 gap-2 text-[10px] font-bold text-[#24a173]">

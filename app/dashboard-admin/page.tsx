@@ -52,14 +52,14 @@ function buildSmoothPath(
   if (data.length === 0) return { line: '', fill: '' };
   const padT = 10, padB = 10;
   const h = svgH - padT - padB;
-  const dx = svgW / Math.max(data.length - 1, 1);
+  const colW = svgW / data.length;
   const getY = (v: number) => padT + h - (maxVal > 0 ? (v / maxVal) * h : 0);
-  const pts = data.map((v, i) => ({ x: i * dx, y: getY(v) }));
+  const pts = data.map((v, i) => ({ x: i * colW + colW / 2, y: getY(v) }));
   let line = `M${pts[0].x},${pts[0].y}`;
   for (let i = 1; i < pts.length; i++) {
-    const cx1 = pts[i - 1].x + dx * 0.45;
+    const cx1 = pts[i - 1].x + colW * 0.45;
     const cy1 = pts[i - 1].y;
-    const cx2 = pts[i].x - dx * 0.45;
+    const cx2 = pts[i].x - colW * 0.45;
     const cy2 = pts[i].y;
     line += ` C${cx1},${cy1} ${cx2},${cy2} ${pts[i].x},${pts[i].y}`;
   }
@@ -77,6 +77,8 @@ export default function DashboardAdmin() {
   });
   const [packageVolumeByStatus, setPackageVolumeByStatus] = useState<{ date: string; sukses: number; proses: number; batal: number }[]>([]);
   const [dailyRevenue, setDailyRevenue] = useState<{ date: string; revenue: number }[]>([]);
+  const [activeVolIndex, setActiveVolIndex] = useState<number | null>(null);
+  const [activeRevIndex, setActiveRevIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -252,46 +254,141 @@ export default function DashboardAdmin() {
                 </span>
               </div>
             </div>
-            <div className="w-full h-[200px] md:h-[260px] relative">
-              <svg viewBox="0 0 800 200" className="w-full h-full preserve-3d overflow-visible" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#24a173" stopOpacity={0.15}/>
-                    <stop offset="95%" stopColor="#24a173" stopOpacity={0.01}/>
-                  </linearGradient>
-                  <linearGradient id="colorOrange" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.01}/>
-                  </linearGradient>
-                  <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01}/>
-                  </linearGradient>
-                </defs>
-                <line x1="0" y1="180" x2="800" y2="180" stroke="#f1f5f9" strokeWidth="1.5" />
-                <line x1="0" y1="135" x2="800" y2="135" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                <line x1="0" y1="90" x2="800" y2="90" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                <line x1="0" y1="45" x2="800" y2="45" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                <line x1="0" y1="0" x2="800" y2="0" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                
-                {/* Sukses */}
-                {suksesFill && <path d={suksesFill} fill="url(#colorGreen)" />}
-                {suksesLine && <path d={suksesLine} fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                
-                {/* Proses */}
-                {prosesFill && <path d={prosesFill} fill="url(#colorOrange)" />}
-                {prosesLine && <path d={prosesLine} fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-                
-                {/* Batal */}
-                {batalFill && <path d={batalFill} fill="url(#colorRed)" />}
-                {batalLine && <path d={batalLine} fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-              </svg>
-              {/* x-axis labels */}
-              <div className="absolute bottom-0 left-0 w-full flex justify-between pt-2 px-1 text-[10px] md:text-xs text-gray-400 font-medium tracking-tighter sm:tracking-normal">
-                {packageVolumeByStatus.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
-              </div>
-              <div className="absolute top-0 left-0 h-full flex flex-col justify-between pb-[18px] pr-2 text-[10px] md:text-xs text-gray-400 font-medium -translate-x-full pr-3">
+            <div className="relative w-full" style={{ height: 220 }}>
+              <div className="absolute left-0 top-0 h-[180px] flex flex-col justify-between text-[10px] md:text-xs text-gray-400 font-semibold w-8 text-right pr-2">
                 {volYLabels.map((v, i) => <span key={i}>{v}</span>)}
+              </div>
+              <div className="absolute left-10 right-0 top-0 h-[180px] border-l border-b border-gray-200 relative">
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                  {[0, 1, 2, 3].map((i) => <div key={i} className="w-full border-t border-gray-100 border-dashed h-0" />)}
+                  <div className="w-full h-0" />
+                </div>
+                <svg viewBox="0 0 800 180" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#24a173" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#24a173" stopOpacity={0.01}/>
+                    </linearGradient>
+                    <linearGradient id="colorOrange" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.01}/>
+                    </linearGradient>
+                    <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01}/>
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Sukses */}
+                  {suksesFill && <path d={suksesFill} fill="url(#colorGreen)" />}
+                  {suksesLine && <path d={suksesLine} fill="none" stroke="#24a173" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                  
+                  {/* Proses */}
+                  {prosesFill && <path d={prosesFill} fill="url(#colorOrange)" />}
+                  {prosesLine && <path d={prosesLine} fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+                  
+                  {/* Batal */}
+                  {batalFill && <path d={batalFill} fill="url(#colorRed)" />}
+                  {batalLine && <path d={batalLine} fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+
+                  {/* Guide Line */}
+                  {activeVolIndex !== null && (
+                    <line
+                      x1={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                      y1={0}
+                      x2={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                      y2={180}
+                      stroke="#cbd5e1"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      pointerEvents="none"
+                    />
+                  )}
+
+                  {/* Highlight Circles */}
+                  {activeVolIndex !== null && packageVolumeByStatus[activeVolIndex] && (
+                    <g pointerEvents="none">
+                      <circle
+                        cx={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                        cy={10 + 160 - (maxVol > 0 ? (packageVolumeByStatus[activeVolIndex].sukses / maxVol) * 160 : 0)}
+                        r={6}
+                        fill="#24a173"
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                      />
+                      <circle
+                        cx={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                        cy={10 + 160 - (maxVol > 0 ? (packageVolumeByStatus[activeVolIndex].proses / maxVol) * 160 : 0)}
+                        r={6}
+                        fill="#f59e0b"
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                      />
+                      <circle
+                        cx={activeVolIndex * (800 / 7) + (800 / 7) / 2}
+                        cy={10 + 160 - (maxVol > 0 ? (packageVolumeByStatus[activeVolIndex].batal / maxVol) * 160 : 0)}
+                        r={6}
+                        fill="#ef4444"
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                      />
+                    </g>
+                  )}
+
+                  {/* Hover Trigger Rects */}
+                  {packageVolumeByStatus.map((d, i) => {
+                    const colW = 800 / 7;
+                    const x = i * colW;
+                    return (
+                      <rect
+                        key={i}
+                        x={x}
+                        y={0}
+                        width={colW}
+                        height={180}
+                        fill="transparent"
+                        className="cursor-pointer"
+                        onMouseEnter={() => setActiveVolIndex(i)}
+                        onMouseLeave={() => setActiveVolIndex(null)}
+                      />
+                    );
+                  })}
+                </svg>
+                {/* x-axis labels */}
+                <div className="absolute -bottom-6 left-0 w-full flex justify-between text-[10px] md:text-xs text-gray-400 font-medium">
+                  {packageVolumeByStatus.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
+                </div>
+
+                {/* Tooltip */}
+                {activeVolIndex !== null && packageVolumeByStatus[activeVolIndex] && (
+                  <div 
+                    className="absolute bg-slate-900/95 text-white p-3 rounded-2xl shadow-xl border border-slate-800 text-[10px] md:text-xs flex flex-col gap-1.5 z-30 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95 duration-100"
+                    style={{
+                      left: `${(activeVolIndex * (100 / 7)) + (100 / 7) / 2}%`,
+                      top: '0%',
+                      transform: 'translate(-50%, -100%)',
+                      marginTop: '-12px'
+                    }}
+                  >
+                    <p className="font-extrabold text-slate-300 border-b border-slate-700/60 pb-1 mb-1 whitespace-nowrap text-center">
+                      {formatDateLabel(packageVolumeByStatus[activeVolIndex].date)}
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      <span className="flex items-center gap-2 font-semibold text-emerald-400">
+                        <span className="w-2 h-2 bg-[#24a173] rounded-full inline-block"></span>
+                        Sukses: {packageVolumeByStatus[activeVolIndex].sukses}
+                      </span>
+                      <span className="flex items-center gap-2 font-semibold text-amber-400">
+                        <span className="w-2 h-2 bg-[#f59e0b] rounded-full inline-block"></span>
+                        Proses: {packageVolumeByStatus[activeVolIndex].proses}
+                      </span>
+                      <span className="flex items-center gap-2 font-semibold text-rose-400">
+                        <span className="w-2 h-2 bg-[#ef4444] rounded-full inline-block"></span>
+                        Batal: {packageVolumeByStatus[activeVolIndex].batal}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -308,55 +405,82 @@ export default function DashboardAdmin() {
                 Aktif
               </span>
             </div>
-            <div className="w-full h-[200px] md:h-[260px] relative">
-              <svg viewBox="0 0 800 200" className="w-full h-full preserve-3d overflow-visible" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1b8555" stopOpacity={0.95}/>
-                    <stop offset="95%" stopColor="#24a173" stopOpacity={0.7}/>
-                  </linearGradient>
-                </defs>
-                <line x1="0" y1="180" x2="800" y2="180" stroke="#f1f5f9" strokeWidth="1.5" />
-                <line x1="0" y1="135" x2="800" y2="135" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                <line x1="0" y1="90" x2="800" y2="90" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                <line x1="0" y1="45" x2="800" y2="45" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                <line x1="0" y1="0" x2="800" y2="0" stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="6 6" />
-                
-                {dailyRevenue.map((d, i) => {
-                  const colW = 800 / 7;
-                  const w = 44;
-                  const x = i * colW + (colW - w) / 2;
-                  const barH = maxRev > 0 ? (d.revenue / maxRev) * 160 : 0;
-                  const y = 180 - barH;
-                  return (
-                    <g key={i}>
-                      <rect 
-                        x={x}
-                        y={y}
-                        width={w}
-                        height={barH}
-                        fill="url(#colorRevenue)"
-                        rx={6}
-                      />
-                      {d.revenue > 0 && (
-                        <text
-                          x={x + w / 2}
-                          y={y - 6}
-                          textAnchor="middle"
-                          className="text-[9px] md:text-[11px] font-extrabold fill-[#0b5131]"
-                        >
-                          {formatRupiahShort(d.revenue)}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
-              </svg>
-              <div className="absolute bottom-0 left-0 w-full flex justify-between pt-2 px-1 text-[10px] md:text-xs text-gray-400 font-medium tracking-tighter sm:tracking-normal">
-                {dailyRevenue.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
-              </div>
-              <div className="absolute top-0 left-0 h-full flex flex-col justify-between pb-[18px] pr-2 text-[10px] md:text-xs text-gray-400 font-medium -translate-x-full pr-3 whitespace-nowrap">
+            <div className="relative w-full" style={{ height: 220 }}>
+              <div className="absolute left-0 top-0 h-[180px] flex flex-col justify-between text-[10px] md:text-xs text-gray-400 font-semibold w-14 text-right pr-2">
                 {revYLabels.map((v, i) => <span key={i}>{v}</span>)}
+              </div>
+              <div className="absolute left-16 right-0 top-0 h-[180px] border-l border-b border-gray-200 relative">
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                  {[0, 1, 2, 3].map((i) => <div key={i} className="w-full border-t border-gray-100 border-dashed h-0" />)}
+                  <div className="w-full h-0" />
+                </div>
+                <svg viewBox="0 0 800 180" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1b8555" stopOpacity={0.95}/>
+                      <stop offset="95%" stopColor="#24a173" stopOpacity={0.7}/>
+                    </linearGradient>
+                  </defs>
+                  
+                  {dailyRevenue.map((d, i) => {
+                    const colW = 800 / 7;
+                    const w = 44;
+                    const x = i * colW + (colW - w) / 2;
+                    const barH = maxRev > 0 ? (d.revenue / maxRev) * 150 : 0;
+                    const y = 180 - barH;
+                    const isActive = activeRevIndex === i;
+                    return (
+                      <g key={i}>
+                        <rect 
+                          x={x}
+                          y={y}
+                          width={w}
+                          height={barH}
+                          fill="url(#colorRevenue)"
+                          opacity={activeRevIndex === null || isActive ? 1 : 0.6}
+                          rx={6}
+                          className="cursor-pointer transition-all duration-200"
+                          onMouseEnter={() => setActiveRevIndex(i)}
+                          onMouseLeave={() => setActiveRevIndex(null)}
+                        />
+                        {d.revenue > 0 && !isActive && (
+                          <text
+                            x={x + w / 2}
+                            y={y - 6}
+                            textAnchor="middle"
+                            className="text-[9px] md:text-[11px] font-extrabold fill-[#0b5131]"
+                          >
+                            {formatRupiahShort(d.revenue)}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+                {/* x-axis labels */}
+                <div className="absolute -bottom-6 left-0 w-full flex justify-between text-[10px] md:text-xs text-gray-400 font-medium">
+                  {dailyRevenue.map((d, i) => <span key={i} className="flex-1 text-center">{formatDateLabel(d.date)}</span>)}
+                </div>
+
+                {/* Tooltip */}
+                {activeRevIndex !== null && dailyRevenue[activeRevIndex] && (
+                  <div 
+                    className="absolute bg-slate-900/95 text-white p-3 rounded-2xl shadow-xl border border-slate-800 text-[10px] md:text-xs flex flex-col gap-1.5 z-30 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95 duration-100"
+                    style={{
+                      left: `${(activeRevIndex * (100 / 7)) + (100 / 7) / 2}%`,
+                      top: '0%',
+                      transform: 'translate(-50%, -100%)',
+                      marginTop: '-12px'
+                    }}
+                  >
+                    <p className="font-extrabold text-slate-300 border-b border-slate-700/60 pb-1 mb-1 whitespace-nowrap text-center">
+                      {formatDateLabel(dailyRevenue[activeRevIndex].date)}
+                    </p>
+                    <span className="font-bold text-emerald-400 text-center block whitespace-nowrap">
+                      Rp {dailyRevenue[activeRevIndex].revenue.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
